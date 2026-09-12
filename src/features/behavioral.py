@@ -60,10 +60,6 @@ def extract(turns_path: Path, duration_s: float | None = None) -> dict:
         duration_s = max((t["end"] for t in turns), default=0.0)
     duration_s = max(duration_s, 1e-6)
 
-    # --- Response latency: gap when the floor passes agent -> caller. ---
-    # Walk the merged timeline; on a 1->0 speaker switch, record how long the
-    # caller took to start after the agent's turn ended. Bots tend to be either
-    # suspiciously uniform or laggy; humans are variable.
     caller_latencies: list[float] = []
     agent_latencies: list[float] = []
     prev = None
@@ -75,8 +71,7 @@ def extract(turns_path: Path, duration_s: float | None = None) -> dict:
             else:
                 agent_latencies.append(gap)
         prev = t
-
-    # --- Overlap / barge-in between the two channels. ---
+        
     overlap_total = 0.0
     overlap_count = 0
     j = 0

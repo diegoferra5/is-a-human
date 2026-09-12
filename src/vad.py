@@ -32,9 +32,10 @@ def read_wav(path: str | Path) -> tuple[np.ndarray, int]:
     assert width == 2, f"expected 16-bit PCM, got {width*8}-bit"
     x = np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768.0
     x = x.reshape(-1, n_ch)
+   ## print(x,sr)
     return x, sr
 
-
+## this detects the energy of chunk
 def _frame_energy_db(sig: np.ndarray, sr: int) -> tuple[np.ndarray, float]:
     frame = int(sr * FRAME_MS / 1000)
     hop = int(sr * HOP_MS / 1000)

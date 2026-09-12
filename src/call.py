@@ -3,6 +3,8 @@
 Carries the audio + lazily-computed turns so each view can pull what it needs
 (behavioral -> turns, acoustic -> waveform, semantic -> waveform for ASR).
 """
+
+##this class gives each view what needs
 from __future__ import annotations
 
 import json
@@ -23,7 +25,7 @@ class Call:
     anon_id: str
     audio_path: Path
     duration_s: float | None = None
-    _turns: dict | None = field(default=None, repr=False)
+    _turns: dict | None = field(default=None, repr=False) ## these are the turns 
     _wav: tuple | None = field(default=None, repr=False)
 
     @classmethod
