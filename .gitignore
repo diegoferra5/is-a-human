@@ -1,6 +1,8 @@
 # Challenge dataset — licensed for the hackathon only, do not redistribute
-dataset/
-audio/
+/dataset/
+resources/challenge-dataset/
+resources/audio/
+/audio/
 *.zip
 *.wav
 
@@ -10,6 +12,9 @@ kb/source/
 # Transcripts — the agent says the sponsor's name aloud in every call
 transcripts/
 *.transcript.json
+
+# Matplotlib cache
+.matplotlib/
 
 # Python
 __pycache__/

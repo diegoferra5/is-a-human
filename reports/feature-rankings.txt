@@ -1,0 +1,51 @@
+Feature rankings from v3 extraction (train + val, no bootstrap)
+Generated from full 353-call re-extract — use for keep/improve/dump decisions.
+
+feature                                   train_d    val_d train_rank val_rank
+------------------------------------------------------------------------------
+
+# KEEP core acoustic
+caller_rms_mean                             +1.50    +2.26          1        1
+caller_zcr_std                              -1.37    -1.81          3        3
+caller_rms_cv                               -1.37    -1.56          4        6
+caller_spectral_flatness_std                -1.43    -1.44          2        9
+caller_spectral_centroid_std                -1.36    -1.47          5        8
+caller_crest_factor_cv                      -1.28    -1.82          8        2
+
+# NEW top-3
+caller_hnr_mean                             -0.19    -0.92         55       19
+caller_hnr_std                              -0.40    -0.64         44       34
+caller_hnr_cv                               +0.05    +1.12         64       15
+caller_agent_bleed_correlation              -0.37    +0.12         46       56
+caller_breath_gap_ratio                     +0.00    +0.00         68       68
+caller_breath_event_rate                    +0.00    +0.00         67       67
+
+# Micro-variation batch
+caller_formant_f1_std                       +0.78    +1.73         21        4
+caller_formant_f2_std                       +0.78    +1.73         22        5
+caller_formant_volatility_mean              +0.58    +1.36         33       11
+caller_pitch_jitter                         -0.53    -0.01         37       65
+caller_pitch_shimmer                        +0.44    +0.51         40       44
+caller_f0_std                               -1.05    -0.97         10       17
+caller_f0_cv                                -0.21    +0.26         52       51
+caller_pause_entropy                        -0.07    -0.27         62       50
+caller_lfcc_delta_delta_std                 -0.21    -0.77         51       26
+
+# Interaction batch
+cross_channel_energy_correlation            -0.11    -0.18         60       52
+caller_yield_decay_mean_db                  -0.19    -0.15         54       53
+caller_yield_decay_std_db                   -0.14    -0.28         58       49
+caller_agent_echo_correlation               -0.17    -0.05         56       61
+
+# Conversational
+caller_talk_ratio                           +0.80    +1.19         20       13
+agent_talk_ratio                            -1.26    -1.44          9       10
+caller_response_latency_cv                  -1.30    -0.96          7       18
+overlap_ratio                               +0.41    +0.47         42       46
+silence_ratio                               +0.66    +0.62         28       36
+
+# Recovery
+agent_aligned_recovery_cv                   -1.32    -1.31          6       12
+agent_aligned_recovery_mean_s               +0.89    +0.63         14       35
+caller_barge_in_count                       -0.89    -0.75         12       27
+post_overlap_recovery_cv                    -0.86    -0.78         18       25
