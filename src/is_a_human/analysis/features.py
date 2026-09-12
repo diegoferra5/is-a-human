@@ -7,6 +7,8 @@ from dataclasses import asdict, dataclass, fields
 import numpy as np
 
 from is_a_human.analysis.acoustic import extract_acoustic_features
+from is_a_human.analysis.interaction_physics import extract_interaction_physics_features
+from is_a_human.analysis.micro_variation import extract_micro_variation_features
 from is_a_human.analysis.recovery import extract_recovery_features
 from is_a_human.dataset.loader import TurnSegment
 from is_a_human.pipeline import PipelineResult, process_call
@@ -75,6 +77,28 @@ class CallFeatures:
     caller_barge_in_count: float
     caller_backchannel_count: float
     agent_turn_fragmentation: float
+
+    caller_formant_f1_std: float
+    caller_formant_f2_std: float
+    caller_formant_f3_std: float
+    caller_formant_volatility_mean: float
+    caller_pitch_jitter: float
+    caller_pitch_shimmer: float
+    caller_f0_std: float
+    caller_f0_cv: float
+    caller_hnr_mean: float
+    caller_hnr_std: float
+    caller_hnr_cv: float
+    caller_pause_entropy: float
+    caller_lfcc_delta_delta_std: float
+
+    caller_breath_event_rate: float
+    caller_breath_gap_ratio: float
+    cross_channel_energy_correlation: float
+    caller_yield_decay_mean_db: float
+    caller_yield_decay_std_db: float
+    caller_agent_echo_correlation: float
+    caller_agent_bleed_correlation: float
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -163,6 +187,10 @@ def extract_call_features(
 
     acoustic = extract_acoustic_features(ch0_caller, sample_rate, organizer_turns, duration_s)
     recovery = extract_recovery_features(organizer_turns)
+    micro = extract_micro_variation_features(ch0_caller, sample_rate, organizer_turns, duration_s)
+    interaction = extract_interaction_physics_features(
+        ch0_caller, ch1_agent, sample_rate, organizer_turns, duration_s
+    )
 
     return CallFeatures(
         anon_id=anon_id,
@@ -188,4 +216,6 @@ def extract_call_features(
         agent_response_latency_cv=agent_lat_cv,
         **acoustic,
         **recovery,
+        **micro,
+        **interaction,
     )

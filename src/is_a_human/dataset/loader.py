@@ -118,6 +118,11 @@ def load_call(
     )
 
 
+def count_split(split: Split, root: Path | str | None = None) -> int:
+    """Return the number of calls in a split without loading audio."""
+    return sum(1 for row in load_manifest(root) if row.split == split)
+
+
 def iter_split(
     split: Split,
     root: Path | str | None = None,

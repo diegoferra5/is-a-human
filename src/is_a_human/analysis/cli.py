@@ -28,6 +28,18 @@ def main() -> None:
         default=None,
         help="Optional path to write report markdown",
     )
+    parser.add_argument(
+        "--progress",
+        action="store_true",
+        default=True,
+        help="Print progress to stderr (default: on)",
+    )
+    parser.add_argument(
+        "--no-progress",
+        action="store_false",
+        dest="progress",
+        help="Disable progress reporting",
+    )
     args = parser.parse_args()
 
     if args.multi:
@@ -35,6 +47,7 @@ def main() -> None:
             dataset_root=args.dataset_root,
             limit=args.limit,
             bootstrap_runs=max(args.bootstrap_runs, 200),
+            show_progress=args.progress,
         )
         report = format_multi_report(summary)
     else:
@@ -43,6 +56,7 @@ def main() -> None:
             dataset_root=args.dataset_root,
             limit=args.limit,
             bootstrap_runs=args.bootstrap_runs,
+            show_progress=args.progress,
         )
         report = format_explore_report(summary)
 

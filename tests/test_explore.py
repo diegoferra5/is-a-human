@@ -4,7 +4,7 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
-from is_a_human.analysis.explore import run_exploratory_analysis
+from is_a_human.analysis.explore import _ExploreProgress, run_exploratory_analysis
 from is_a_human.analysis.features import CallFeatures, extract_call_features
 from is_a_human.dataset.loader import TurnSegment
 
@@ -36,6 +36,14 @@ def _sample(label: str):
         sample_rate=8000,
         turns=(TurnSegment(channel=1, start=0.0, end=1.0), TurnSegment(channel=0, start=2.0, end=3.0)),
     )
+
+
+def test_explore_progress_writes_to_stderr(capsys):
+    progress = _ExploreProgress("test", total=2, enabled=True)
+    progress.update("call_a")
+    progress.update("call_b")
+    progress.done()
+    assert "[explore] test: 2/2" in capsys.readouterr().err
 
 
 def test_run_exploratory_analysis_ranks_features():
