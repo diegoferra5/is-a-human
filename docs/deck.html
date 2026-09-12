@@ -1,0 +1,508 @@
+<title>Liveness Ladder Deck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+  :root{
+    --ground:#F7F8FA;
+    --surface:#FFFFFF;
+    --ink:#111720;
+    --ink-soft:#38424F;
+    --muted:#6B7686;
+    --line:#DFE3EA;
+    --accent:#0E6E6E;
+    --accent-soft:#E4F0EF;
+    --human:#1B6E4B;
+    --synth:#B3352C;
+    --amber:#8A5A12;
+    --amber-soft:#FBF2E2;
+    --serif:"Source Serif 4", Georgia, serif;
+    --sans:"Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+    --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--ground);
+    color:var(--ink);
+    font-family:var(--serif);
+    margin:0;
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+  }
+
+  /* ---------- stage ---------- */
+  .stage{
+    position:relative;
+    width:100vw;
+    height:100vh;
+    min-height:560px;
+  }
+  .slide{
+    position:absolute;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    padding:clamp(40px,6vw,96px) clamp(28px,7vw,110px) 96px;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .28s ease;
+  }
+  .slide.on{opacity:1;pointer-events:auto}
+  @media (prefers-reduced-motion:reduce){.slide{transition:none}}
+
+  .inner{max-width:1020px;width:100%;margin:0 auto}
+
+  /* ---------- type ---------- */
+  .kicker{
+    font-family:var(--mono);
+    font-size:clamp(10px,1.1vw,12px);
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin:0 0 clamp(14px,2vw,22px);
+  }
+  .kicker.grey{color:var(--muted)}
+  h1{
+    font-family:var(--sans);
+    font-weight:800;
+    font-size:clamp(40px,8.5vw,92px);
+    line-height:1;
+    letter-spacing:-.03em;
+    margin:0 0 24px;
+    text-wrap:balance;
+  }
+  h2{
+    font-family:var(--sans);
+    font-weight:600;
+    font-size:clamp(30px,5.2vw,60px);
+    line-height:1.07;
+    letter-spacing:-.025em;
+    margin:0 0 clamp(16px,2.4vw,28px);
+    text-wrap:balance;
+    max-width:19ch;
+  }
+  h2.wide{max-width:26ch}
+  .lede{
+    font-size:clamp(17px,2.1vw,25px);
+    line-height:1.5;
+    color:var(--ink-soft);
+    margin:0 0 18px;
+    max-width:50ch;
+  }
+  .lede:last-child{margin-bottom:0}
+  .lede b{color:var(--ink);font-weight:600}
+  .sub{
+    font-size:clamp(15px,1.6vw,19px);
+    color:var(--muted);
+    margin:0;
+    max-width:52ch;
+  }
+
+  /* ---------- title slide ---------- */
+  .title-slide h1{margin-bottom:clamp(20px,3vw,32px)}
+  .title-meta{
+    font-family:var(--mono);
+    font-size:clamp(11px,1.3vw,14px);
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin:clamp(28px,4vw,44px) 0 0;
+    padding-top:20px;
+    border-top:1px solid var(--line);
+  }
+
+  /* ---------- columns ---------- */
+  .cols{
+    display:grid;
+    gap:clamp(16px,2vw,26px);
+    grid-template-columns:1fr;
+    margin-top:clamp(18px,2.5vw,30px);
+  }
+  @media(min-width:820px){
+    .cols.c2{grid-template-columns:1fr 1fr}
+    .cols.c3{grid-template-columns:repeat(3,1fr)}
+  }
+  .card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:7px;
+    padding:clamp(18px,2.2vw,26px);
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  .card.ghost{background:transparent;border-style:dashed}
+  .chip{
+    font-family:var(--mono);
+    font-size:clamp(9.5px,1vw,11px);
+    letter-spacing:.13em;
+    text-transform:uppercase;
+    color:var(--accent);
+    background:var(--accent-soft);
+    padding:4px 9px;
+    border-radius:3px;
+    align-self:flex-start;
+  }
+  .chip.off{color:var(--muted);background:#ECEEF2}
+  .card h3{
+    font-family:var(--sans);
+    font-weight:600;
+    font-size:clamp(19px,2.2vw,26px);
+    line-height:1.15;
+    letter-spacing:-.018em;
+    margin:0;
+    text-wrap:balance;
+  }
+  .card p{
+    margin:0;
+    font-size:clamp(14.5px,1.5vw,17.5px);
+    line-height:1.5;
+    color:var(--ink-soft);
+  }
+  .why{
+    border-top:1px solid var(--line);
+    padding-top:12px;
+    margin-top:auto;
+  }
+  .why span{
+    font-family:var(--mono);
+    font-size:10px;
+    letter-spacing:.13em;
+    text-transform:uppercase;
+    color:var(--muted);
+    display:block;
+    margin-bottom:6px;
+  }
+
+  /* ---------- transcript ---------- */
+  .tx{
+    font-family:var(--mono);
+    font-size:clamp(12.5px,1.4vw,15px);
+    line-height:1.7;
+    color:var(--muted);
+    background:var(--ground);
+    border:1px solid var(--line);
+    border-radius:5px;
+    padding:14px 16px;
+    margin:0;
+    overflow-x:auto;
+  }
+  .tx b{font-weight:500}
+  .tx .h{color:var(--human)}
+  .tx .s{color:var(--synth)}
+
+  /* ---------- ladder ---------- */
+  .ladder{display:flex;flex-direction:column;border-top:1px solid var(--line);margin-top:8px}
+  .rung{
+    display:grid;
+    grid-template-columns:46px minmax(0,1fr) 130px 58px;
+    gap:clamp(10px,1.6vw,22px);
+    padding:clamp(11px,1.5vw,16px) 0;
+    border-bottom:1px solid var(--line);
+    align-items:baseline;
+  }
+  .rung .m{font-family:var(--mono);font-size:clamp(11px,1.2vw,13.5px);color:var(--accent)}
+  .rung .t{
+    font-family:var(--sans);
+    font-weight:600;
+    font-size:clamp(15px,1.8vw,21px);
+    letter-spacing:-.012em;
+  }
+  .rung .t em{
+    font-family:var(--serif);
+    font-style:normal;
+    font-weight:400;
+    color:var(--muted);
+    font-size:.82em;
+    display:block;
+    margin-top:2px;
+  }
+  .rung .l{
+    font-family:var(--mono);
+    font-size:clamp(9.5px,1vw,11px);
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+  .rung .l.core{color:var(--accent)}
+  .rung .h{
+    font-family:var(--mono);
+    font-size:clamp(11px,1.2vw,13px);
+    color:var(--muted);
+    text-align:right;
+    font-variant-numeric:tabular-nums;
+  }
+  @media(max-width:700px){
+    .rung{grid-template-columns:38px 1fr 50px}
+    .rung .l{grid-column:2;font-size:9.5px}
+  }
+
+  /* ---------- callout ---------- */
+  .callout{
+    background:var(--accent-soft);
+    border-left:3px solid var(--accent);
+    border-radius:0 6px 6px 0;
+    padding:clamp(16px,2vw,22px) clamp(18px,2.2vw,26px);
+    margin-top:clamp(18px,2.4vw,28px);
+  }
+  .callout p{margin:0;font-size:clamp(15px,1.7vw,20px);line-height:1.45;color:var(--ink)}
+  .callout b{font-weight:600}
+  .callout.warn{background:var(--amber-soft);border-left-color:#C9922F}
+  .callout.warn p{color:var(--amber)}
+
+  /* ---------- big statement ---------- */
+  .statement{
+    font-family:var(--sans);
+    font-weight:700;
+    font-size:clamp(26px,4.6vw,54px);
+    line-height:1.14;
+    letter-spacing:-.028em;
+    margin:0 0 clamp(18px,2.4vw,28px);
+    max-width:21ch;
+    text-wrap:balance;
+  }
+
+  /* ---------- endpoint block ---------- */
+  .endpoint{
+    font-family:var(--mono);
+    font-size:clamp(13px,1.7vw,19px);
+    line-height:1.8;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:7px;
+    padding:clamp(18px,2.4vw,28px);
+    margin-top:clamp(16px,2vw,24px);
+    overflow-x:auto;
+  }
+  .endpoint .k{color:var(--accent)}
+  .endpoint .c{color:var(--muted)}
+
+  /* ---------- chrome ---------- */
+  .chrome{
+    position:fixed;
+    left:0;right:0;bottom:0;
+    height:56px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 clamp(18px,4vw,40px);
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--muted);
+    background:linear-gradient(to top, var(--ground) 55%, rgba(247,248,250,0));
+    pointer-events:none;
+  }
+  .chrome .who{color:var(--muted)}
+  .nav{display:flex;align-items:center;gap:14px;pointer-events:auto}
+  .nav button{
+    font:inherit;
+    letter-spacing:inherit;
+    text-transform:inherit;
+    background:var(--surface);
+    border:1px solid var(--line);
+    color:var(--ink-soft);
+    border-radius:4px;
+    padding:6px 12px;
+    cursor:pointer;
+    transition:border-color .15s, color .15s;
+  }
+  .nav button:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+  .nav button:disabled{opacity:.4;cursor:default}
+  .nav button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .count{font-variant-numeric:tabular-nums;color:var(--ink);min-width:56px;text-align:center}
+  .bar{
+    position:fixed;
+    top:0;left:0;
+    height:2px;
+    background:var(--accent);
+    transition:width .28s ease;
+    z-index:5;
+  }
+</style>
+
+<div class="bar" id="bar"></div>
+
+<div class="stage" id="stage">
+
+  <!-- 1 -->
+  <section class="slide title-slide on">
+    <div class="inner">
+      <p class="kicker">Backward Deployed Engineers</p>
+      <h1>The Liveness Ladder</h1>
+      <p class="lede">A bank's phone line picks up and someone starts talking. <b>Is it a person, or a machine wearing a human voice?</b></p>
+      <p class="title-meta">Our plan · four people · thirty-six hours</p>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section class="slide">
+    <div class="inner">
+      <p class="kicker">The trap</p>
+      <h2>The obvious move is the losing move.</h2>
+      <p class="lede">We're not up against a recording played down the line. It's a robot caller that <b>listens, thinks and speaks</b> — improvising through a real conversation.</p>
+      <p class="lede">Everyone will train on what fake audio sounds like. But every voice engine leaves a <b>different</b> fingerprint, and we're graded on engines nobody has heard.</p>
+      <div class="callout warn">
+        <p><b>They built the split to punish memorising.</b> Train and test share no speakers, and judging uses voices absent from both.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section class="slide">
+    <div class="inner">
+      <p class="kicker">The idea</p>
+      <h2 class="wide">Stop listening to the voice. Watch the conversation.</h2>
+      <p class="lede">Two ways to catch a counterfeit bill: feel the paper, or ask the person holding it a question. Everyone else feels the paper. <b>We ask the question.</b></p>
+      <div class="cols c3">
+        <div class="card">
+          <span class="chip">Layer 1 · Behavior</span>
+          <p><b>How</b> the caller handles the flow of the call. Pause length, how much it varies, whether they ever talk over the agent.</p>
+        </div>
+        <div class="card">
+          <span class="chip">Layer 2 · Semantic</span>
+          <p><b>What</b> the caller says when the agent asks about something that does not exist.</p>
+        </div>
+        <div class="card ghost">
+          <span class="chip off">Layer 3 · Acoustic</span>
+          <p>What the voice sounds like. It learns <b>these</b> engines, so we skip it — last, if at all, weighted low.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section class="slide">
+    <div class="inner">
+      <p class="kicker">Layer 1 · Conversational behavior</p>
+      <h2>Machines pause too well.</h2>
+      <div class="cols c2">
+        <div class="card">
+          <span class="chip">Why it works</span>
+          <p>A robot caller is three steps in a row: hear → think → speak. It <b>physically cannot</b> start answering until it detects you stopped talking, so its pause is always about the same length.</p>
+          <p>A person predicts where your sentence is going and jumps in early. That gap is structural — you can't remove it without breaking the agent.</p>
+        </div>
+        <div class="card">
+          <span class="chip">What it looks like</span>
+          <p class="tx">Agent interrupts.<br><b class="h">Person</b> — "perdón— perdón, dígame"<br><b class="s">Machine</b> — clean sentence, 1.2 s later. Every time.</p>
+          <p>The <b>consistency</b> is the tell. Turn 3 and turn 30 look identical.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section class="slide">
+    <div class="inner">
+      <p class="kicker">Layer 2 · Semantic</p>
+      <h2 class="wide">Machines can't say "I don't have that."</h2>
+      <div class="cols c2">
+        <div class="card">
+          <span class="chip">Why it works</span>
+          <p>A language model is built to produce a plausible answer, and it has no real account to check against — so it fills the gap.</p>
+          <p>That reflex to invent belongs to the <b>model</b>, not the voice. It shows up no matter which voice engine is bolted on top.</p>
+        </div>
+        <div class="card">
+          <span class="chip">What it looks like</span>
+          <p class="tx">"¿Me confirma su cuenta Platino?"<br><b class="h">Person</b> — "No, yo no tengo esa cuenta."<br><b class="s">Machine</b> — "Sí, es la 4409-8821…"</p>
+          <p>There is no Platino account. There never was.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section class="slide">
+    <div class="inner">
+      <p class="kicker">What we hand in</p>
+      <h2 class="wide">One endpoint, and a score that means something.</h2>
+      <div class="endpoint">
+        <span class="k">POST</span> /detect<br>
+        <span class="c">← stereo call, 8 kHz · channel 0 = caller, channel 1 = agent</span><br><br>
+        { <span class="k">"is_synthetic"</span>: true, <span class="k">"confidence"</span>: 0.87 }
+      </div>
+      <div class="callout">
+        <p><b>We don't average the layers.</b> Each returns a score and a flag saying whether it fired — Layer 2 only fires a few times per call. A small model learns which one to trust when, and gives us calibration for free.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 -->
+  <section class="slide">
+    <div class="inner">
+      <p class="kicker">How we build it</p>
+      <h2 class="wide">Six rungs. Every one of them ships.</h2>
+      <div class="ladder">
+        <div class="rung"><span class="m">M0</span><span class="t">Get a heartbeat<em>An endpoint that always guesses the same thing</em></span><span class="l">Pair A</span><span class="h">1 h</span></div>
+        <div class="rung"><span class="m">M1</span><span class="t">Does behavior alone separate them?<em>Measure the pauses — no audio needed</em></span><span class="l core">Pair A</span><span class="h">4 h</span></div>
+        <div class="rung"><span class="m">M2</span><span class="t">Grow our own ears<em>Who spoke when, straight from the recording</em></span><span class="l core">Pair A</span><span class="h">3 h</span></div>
+        <div class="rung"><span class="m">M3</span><span class="t">Listen to what was said<em>Transcribe, then find the trick questions</em></span><span class="l core">Pair B</span><span class="h">8 h</span></div>
+        <div class="rung"><span class="m">M4</span><span class="t">One answer, fast<em>Merge the layers, stop when already sure</em></span><span class="l">All</span><span class="h">3 h</span></div>
+        <div class="rung"><span class="m">M5</span><span class="t">Build the attacker<em>Our own robot caller, caught live</em></span><span class="l">All</span><span class="h">6 h</span></div>
+      </div>
+      <div class="callout warn">
+        <p><b>M2 cannot be skipped.</b> The dataset hands us a file listing who spoke when. At judging that file does not exist — we get audio and nothing else.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 -->
+  <section class="slide">
+    <div class="inner">
+      <p class="kicker">The demo, and the pitch</p>
+      <h2 class="wide">We build the attacker, then let it get caught.</h2>
+      <p class="lede">We build voice agents for a living. So we build one — with a voice engine that appears nowhere in the dataset — put it on a real phone line, and the verdict lands <b>while the call is still going</b>. Then a judge calls the same number and comes back <b>human</b>.</p>
+      <div class="callout">
+        <p>"We build the AI callers banks are afraid of — so we built one, called our own detector, and it caught us."</p>
+      </div>
+      <p class="title-meta">Backward Deployed Engineers</p>
+    </div>
+  </section>
+
+</div>
+
+<div class="chrome">
+  <span class="who">Backward Deployed Engineers</span>
+  <span class="nav">
+    <button id="prev" type="button" aria-label="Previous slide">Prev</button>
+    <span class="count" id="count">1 / 8</span>
+    <button id="next" type="button" aria-label="Next slide">Next</button>
+  </span>
+</div>
+
+<script>
+  (function(){
+    var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+    var total = slides.length;
+    var i = 0;
+    var count = document.getElementById('count');
+    var bar = document.getElementById('bar');
+    var prev = document.getElementById('prev');
+    var next = document.getElementById('next');
+
+    function show(n){
+      i = Math.max(0, Math.min(total - 1, n));
+      slides.forEach(function(s, k){ s.classList.toggle('on', k === i); });
+      count.textContent = (i + 1) + ' / ' + total;
+      bar.style.width = (((i + 1) / total) * 100) + '%';
+      prev.disabled = (i === 0);
+      next.disabled = (i === total - 1);
+      try { history.replaceState(null, '', '#' + (i + 1)); } catch (e) {}
+    }
+
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(i + 1); }
+      else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+      else if (e.key === 'Home') { e.preventDefault(); show(0); }
+      else if (e.key === 'End') { e.preventDefault(); show(total - 1); }
+    });
+
+    prev.addEventListener('click', function(){ show(i - 1); });
+    next.addEventListener('click', function(){ show(i + 1); });
+
+    var start = parseInt((location.hash || '').replace('#',''), 10);
+    show(isNaN(start) ? 0 : start - 1);
+  })();
+</script>

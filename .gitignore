@@ -7,6 +7,10 @@ audio/
 # Original challenge brief (source PDF + raw text dump) — local only
 kb/source/
 
+# Transcripts — the agent says the sponsor's name aloud in every call
+transcripts/
+*.transcript.json
+
 # Python
 __pycache__/
 *.py[cod]

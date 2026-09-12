@@ -1,0 +1,292 @@
+<title>The Liveness Ladder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+  :root{
+    --ground:#F7F8FA;
+    --surface:#FFFFFF;
+    --ink:#111720;
+    --ink-soft:#38424F;
+    --muted:#6B7686;
+    --line:#DFE3EA;
+    --accent:#0E6E6E;
+    --accent-soft:#E4F0EF;
+    --human:#1B6E4B;
+    --synth:#B3352C;
+    --serif:"Source Serif 4", Georgia, serif;
+    --sans:"Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+    --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--ground);
+    color:var(--ink);
+    font-family:var(--serif);
+    font-size:17px;
+    line-height:1.6;
+    margin:0;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:720px;margin:0 auto;padding:0 28px 88px}
+
+  header{padding:56px 0 36px;border-bottom:1px solid var(--line);margin-bottom:48px}
+  .eyebrow{
+    font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--muted);margin:0 0 18px;
+  }
+  h1{
+    font-family:var(--sans);font-weight:800;
+    font-size:clamp(36px,7vw,56px);line-height:1.02;letter-spacing:-.025em;
+    margin:0 0 16px;text-wrap:balance;
+  }
+  .thesis{font-size:20px;line-height:1.5;color:var(--ink-soft);margin:0;max-width:48ch}
+  .thesis b{color:var(--ink);font-weight:600}
+
+  section{margin-bottom:56px}
+  h2{
+    font-family:var(--sans);font-weight:600;font-size:14px;
+    color:var(--accent);margin:0 0 14px;
+    display:flex;align-items:center;gap:10px;
+  }
+  h2::after{content:"";flex:1;height:1px;background:var(--line)}
+  p{margin:0 0 16px}
+  p:last-child{margin-bottom:0}
+  .big{font-size:19px;color:var(--ink-soft)}
+
+  .two{display:grid;grid-template-columns:1fr;gap:16px;margin-top:20px}
+  @media(min-width:620px){.two{grid-template-columns:1fr 1fr}}
+  .sig{
+    background:var(--surface);border:1px solid var(--line);
+    border-radius:6px;padding:22px 22px 24px;
+  }
+  .sig h3{
+    font-family:var(--sans);font-weight:600;font-size:19px;
+    letter-spacing:-.012em;margin:0 0 10px;
+  }
+  .sig p{font-size:16px;color:var(--ink-soft);margin:0}
+  .ex{
+    font-family:var(--mono);font-size:13px;line-height:1.5;
+    margin-top:14px;padding-top:14px;border-top:1px solid var(--line);
+    color:var(--muted);
+  }
+  .ex b{font-weight:500}
+  .layer{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--accent);background:var(--accent-soft);
+    padding:3px 8px;border-radius:3px;display:inline-block;margin-bottom:12px;
+  }
+  .layer.off{color:var(--muted);background:#ECEEF2}
+  .why{
+    margin-top:14px;padding-top:12px;border-top:1px solid var(--line);
+    font-size:15px;color:var(--ink-soft);
+  }
+  .why b{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;
+    text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px;font-weight:500;
+  }
+  .sig.dim{background:transparent;border-style:dashed}
+  .three{display:grid;grid-template-columns:1fr;gap:16px;margin-top:20px}
+  @media(min-width:760px){.three{grid-template-columns:repeat(3,1fr)}}
+  .tag{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;
+    text-transform:uppercase;color:var(--muted);
+    border:1px solid var(--line);border-radius:3px;padding:2px 7px;
+    display:inline-block;margin-bottom:7px;
+  }
+  .tag.core{color:var(--accent);border-color:#BEDCDA;background:var(--accent-soft)}
+  .demo{
+    margin-top:20px;background:var(--ink);border-radius:6px;
+    padding:24px 24px 26px;color:#EAEDF1;
+  }
+  .demo .layer{color:#8FD6D2;background:rgba(143,214,210,.12)}
+  .demo h3{
+    font-family:var(--sans);font-weight:600;font-size:20px;
+    letter-spacing:-.014em;margin:0 0 10px;color:#FFFFFF;
+  }
+  .demo p{font-size:16px;color:#B9C2CD;margin:0 0 12px}
+  .demo p:last-child{margin-bottom:0}
+  .demo b{color:#FFFFFF;font-weight:600}
+  .ex .h{color:var(--human)}
+  .ex .s{color:var(--synth)}
+
+  .rule{
+    background:var(--accent-soft);border-left:3px solid var(--accent);
+    border-radius:0 5px 5px 0;padding:18px 22px;margin:0 0 32px;
+  }
+  .rule p{margin:0;font-size:17px}
+  .rule b{font-weight:600}
+
+  .ladder{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+  .phase{
+    display:grid;grid-template-columns:52px 1fr auto;gap:20px;
+    padding:22px 0;border-bottom:1px solid var(--line);align-items:baseline;
+  }
+  .rung{font-family:var(--mono);font-size:13px;color:var(--accent);letter-spacing:.02em}
+  .phase h3{
+    font-family:var(--sans);font-weight:600;font-size:20px;
+    letter-spacing:-.014em;margin:0 0 6px;
+  }
+  .phase p{font-size:16.5px;color:var(--ink-soft);margin:0}
+  .hrs{
+    font-family:var(--mono);font-size:12.5px;color:var(--muted);
+    white-space:nowrap;font-variant-numeric:tabular-nums;
+  }
+  .note{
+    font-family:var(--mono);font-size:12.5px;color:#8A5A12;
+    margin-top:8px;letter-spacing:.01em;
+  }
+  @media(max-width:560px){
+    .phase{grid-template-columns:44px 1fr;gap:14px}
+    .hrs{grid-column:2;margin-top:6px}
+  }
+
+  .closer{border-top:2px solid var(--ink);padding-top:26px}
+  .quote{
+    font-family:var(--sans);font-size:clamp(20px,3.4vw,26px);font-weight:600;
+    line-height:1.3;letter-spacing:-.015em;margin:0 0 18px;
+    max-width:26ch;text-wrap:balance;
+  }
+  .team{
+    font-family:var(--mono);font-size:12px;letter-spacing:.11em;
+    text-transform:uppercase;color:var(--muted);
+    margin:30px 0 0;padding-top:16px;border-top:1px solid var(--line);
+  }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Backward Deployed Engineers</p>
+    <h1>The Liveness Ladder</h1>
+    <p class="thesis">A bank's phone line picks up and someone starts talking. <b>Is it a person, or a machine wearing a human voice?</b></p>
+  </header>
+
+  <section>
+    <h2>The problem</h2>
+    <p class="big">Anyone can clone a voice from a few seconds of audio. For millions of people in Latin America the phone is the only way they bank, and right now nothing on that line can tell a real customer from a robot.</p>
+    <p>What we're up against isn't a recording being played down the line. It's a robot caller that listens, thinks, and speaks — improvising through a real conversation. So we're not hunting for a glitch in the audio. We're asking whether there's a mind on the line.</p>
+  </section>
+
+  <section>
+    <h2>The idea</h2>
+    <p class="big">Two ways to catch a fake bill: feel the paper, or ask the person holding it a question. Everyone else will feel the paper. We ask the question.</p>
+    <p>The challenge names three layers you can attack this from. We go deep on two of them — and skip the obvious one, on purpose.</p>
+
+    <div class="three">
+
+      <div class="sig">
+        <span class="layer">Layer 1 · Conversational behavior</span>
+        <h3>Machines pause too well</h3>
+        <p>We measure how the caller handles the flow of the call: how long they take to answer, how much that varies, and whether they ever talk over the agent.</p>
+        <p class="why"><b>Why it works</b>A robot caller is three steps in a row — hear, think, speak. It physically cannot start answering until it detects you've stopped talking, so its pause is always about the same length. A person predicts where your sentence is going and jumps in early. That gap is structural. You can't engineer it away without breaking the agent.</p>
+        <p class="ex">Agent interrupts.<br><b class="h">Person</b> — "perdón— perdón, dígame"<br><b class="s">Machine</b> — clean sentence, 1.2 s later. Every time.</p>
+      </div>
+
+      <div class="sig">
+        <span class="layer">Layer 2 · Semantic</span>
+        <h3>Machines can't say "I don't have that"</h3>
+        <p>We read what the caller actually said at the moments the agent asks about something that does not exist.</p>
+        <p class="why"><b>Why it works</b>A language model is built to produce a plausible answer, and it has no real account to check against — so it fills the gap. A person just knows they don't have a Platino account and says so. That reflex to invent belongs to the model, not to the voice, so it shows up no matter which voice engine is bolted on top.</p>
+        <p class="ex">"¿Me confirma su cuenta Platino?"<br><b class="h">Person</b> — "No, yo no tengo esa cuenta."<br><b class="s">Machine</b> — "Sí, es la 4409-8821…"</p>
+      </div>
+
+      <div class="sig dim">
+        <span class="layer off">Layer 3 · Acoustic</span>
+        <h3>What the voice sounds like</h3>
+        <p>Train a model on the audio itself — the artefacts and fingerprints a synthetic voice leaves behind.</p>
+        <p class="why"><b>Why we deprioritise it</b>Every voice engine leaves a <em>different</em> fingerprint, and we're graded on engines we have never heard. A model that learns these ones learns the wrong thing. Layers 1 and 2 don't care what the voice sounds like, which is exactly why they survive a new engine. We add this last, if at all, and weight it low.</p>
+      </div>
+
+    </div>
+
+    <div class="demo">
+      <span class="layer">And then · the proof</span>
+      <h3>We build the attacker and let it call us</h3>
+      <p>Anyone can claim their detector generalises. We show it. We build our own robot caller — using a voice engine that appears nowhere in the dataset — and put it on a real phone line while the judges watch. The verdict lands <b>while the call is still going</b>.</p>
+      <p>Then we hand a judge the phone, they call the same number, and come back <b>human</b>.</p>
+      <p>Same detector underneath, just wired to a live call instead of a file. We build these agents for a living, so this is the one thing in the room nobody else can do.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>The roadmap</h2>
+
+    <div class="rule">
+      <p><b>The rule:</b> every step ends with a working endpoint that's live and better than the last. If we run out of time anywhere, we still have something to hand in.</p>
+    </div>
+
+    <div class="ladder">
+      <article class="phase">
+        <span class="rung">M0</span>
+        <div>
+          <span class="tag">Plumbing</span>
+          <h3>Get a heartbeat</h3>
+          <p>An endpoint that always guesses the same thing — so the plumbing is proven before anything smart goes in.</p>
+        </div>
+        <span class="hrs">1 h</span>
+      </article>
+
+      <article class="phase">
+        <span class="rung">M1</span>
+        <div>
+          <span class="tag core">Layer 1 · Conversational behavior</span>
+          <h3>Does behavior alone separate them?</h3>
+          <p>Measure the pauses and see if they alone tell humans and machines apart — using the files we already have, no audio needed.</p>
+        </div>
+        <span class="hrs">4 h</span>
+      </article>
+
+      <article class="phase">
+        <span class="rung">M2</span>
+        <div>
+          <span class="tag core">Layer 1 · on raw audio</span>
+          <h3>Grow our own ears</h3>
+          <p>Work out who spoke when straight from the recording, so the detector runs on what we'll actually be handed.</p>
+          <p class="note">Can't be skipped — at judging we get audio and nothing else.</p>
+        </div>
+        <span class="hrs">3 h</span>
+      </article>
+
+      <article class="phase">
+        <span class="rung">M3</span>
+        <div>
+          <span class="tag core">Layer 2 · Semantic</span>
+          <h3>Listen to what was said</h3>
+          <p>Transcribe both sides, find the trick questions, and check whether the caller denied them or made something up.</p>
+        </div>
+        <span class="hrs">8 h</span>
+      </article>
+
+      <article class="phase">
+        <span class="rung">M4</span>
+        <div>
+          <span class="tag">Fusion</span>
+          <h3>One answer, fast</h3>
+          <p>Merge both layers into one score — not by averaging them, but by learning which layer to trust when.</p>
+          <p class="note">Layer 2 only fires a few times per call. The mix has to know that.</p>
+        </div>
+        <span class="hrs">3 h</span>
+      </article>
+
+      <article class="phase">
+        <span class="rung">M5</span>
+        <div>
+          <span class="tag">Demo</span>
+          <h3>Build the attacker</h3>
+          <p>Make our own robot caller with a voice nobody's trained on, phone in live, and let the judges watch it get caught.</p>
+          <p class="note">First thing to cut if time runs short.</p>
+        </div>
+        <span class="hrs">6 h</span>
+      </article>
+    </div>
+  </section>
+
+  <section class="closer">
+    <h2>The pitch</h2>
+    <p class="quote">"We build the AI callers banks are afraid of — so we built one, called our own detector, and it caught us."</p>
+    <p class="big">Everyone else shows a model that learned what fake audio sounds like. We show a system that catches a machine <em>thinking</em> — proven live, on a voice it has never heard.</p>
+    <p class="team">Backward Deployed Engineers · four people · thirty-six hours</p>
+  </section>
+
+</div>
