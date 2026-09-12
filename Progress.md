@@ -1,6 +1,6 @@
 # Progress
 
-Human vs. synthetic caller detection — HackMTY 2026 challenge track.
+Human vs. synthetic caller detection — the hackathon challenge track.
 
 ## Goal
 
@@ -69,7 +69,7 @@ tests/            33 tests across 11 modules
 
 - [x] Project scaffold — Python package, FastAPI, pytest, CLI entry points
 - [x] Audio ingest — in-memory base64 stereo WAV demux, 8 kHz validation, ch0/ch1 split
-- [x] Dataset loader — auto-detects `resources/hackmty26-main/` + `resources/audio/`
+- [x] Dataset loader — auto-detects `resources/challenge-dataset/` + `resources/audio/`
 - [x] Dual Silero VAD — per-channel speech segmentation
 - [x] Turn ledger — speech / overlap / silence timeline
 - [x] Conversation metrics — talk time, overlap, silence, response latencies
@@ -265,7 +265,7 @@ PDF scripts require `matplotlib` and `reportlab` (installed in local venv; not y
 
 ```
 resources/
-  hackmty26-main/   manifest.csv + turns/
+  challenge-dataset/   manifest.csv + turns/
   audio/            call_*.wav
 ```
 

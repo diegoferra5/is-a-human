@@ -35,7 +35,7 @@ Stack, model, framework and hosting are all open.
 | `src/is_a_human/api/` | FastAPI app and `/detect` endpoint |
 | `tests/` | Unit tests |
 | `kb/` | Knowledge base — challenge brief and working notes |
-| `resources/hackmty26-main/` | `manifest.csv` and `turns/` (**gitignored**, you must add locally) |
+| `resources/challenge-dataset/` | `manifest.csv` and `turns/` (**gitignored**, you must add locally) |
 | `resources/audio/` | Stereo WAV files (**gitignored**, you must add locally) |
 | `dataset/` | Alternate layout if cloned as a single folder (**gitignored**) |
 
@@ -78,13 +78,13 @@ The live endpoint is contract-compliant but returns a **placeholder verdict** (`
 
 ```
 resources/
-  hackmty26-main/     ← clone or copy the challenge metadata repo here
+  challenge-dataset/     ← clone or copy the challenge metadata repo here
     manifest.csv      # anon_id, label, split, duration_s
     turns/            # per-call VAD segments (channel, start, end)
   audio/              ← unzip the audio release here (call_<id>.wav, stereo 8 kHz)
 ```
 
-1. Put `hackmty26-main/` (manifest + turns) in `resources/hackmty26-main/`
+1. Put `challenge-dataset/` (manifest + turns) in `resources/challenge-dataset/`
 2. Put the WAV files in `resources/audio/`
 
 The loader auto-detects this layout. Without both folders, eval and integration tests will skip or fail.
@@ -96,7 +96,7 @@ Each `turns/<anon_id>.json` file lists speech segments for both channels — use
 ## Ground rules
 
 - **Censor the sponsor's name.** The challenge sponsor is never named anywhere in this repo — not in code, comments, commit messages, docs, or file names. Write "the sponsor" or "the organizers". The repo is public.
-- **Never commit the dataset.** It is licensed for the hackathon only and must not be redistributed. `resources/hackmty26-main/`, `resources/audio/`, `dataset/`, `*.wav` and `*.zip` are gitignored — keep it that way.
+- **Never commit the dataset.** It is licensed for the hackathon only and must not be redistributed. `resources/challenge-dataset/`, `resources/audio/`, `dataset/`, `*.wav` and `*.zip` are gitignored — keep it that way.
 - **No confidential source material.** The original challenge PDF stays local (`kb/source/`, gitignored). Only our own transcribed, scrubbed notes get committed.
 - **Don't try to identify callers.** Human participants volunteered under recording notice and used invented personal data.
 

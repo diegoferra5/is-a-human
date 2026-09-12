@@ -9,6 +9,9 @@ resources/audio/
 # Original challenge brief (source PDF + raw text dump) — local only
 kb/source/
 
+# Local working context, not for the public repo
+CLAUDE.md
+
 # Transcripts — the agent says the sponsor's name aloud in every call
 transcripts/
 *.transcript.json

@@ -27,7 +27,7 @@ def _candidate_roots(explicit_root: Path | None) -> list[Path]:
     repo = _repo_root()
     return [
         repo / "dataset",
-        repo / "resources" / "hackmty26-main",
+        repo / "resources" / "challenge-dataset",
     ]
 
 

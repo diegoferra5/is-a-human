@@ -4,8 +4,8 @@ from is_a_human.eval.harness import run_foundation_eval
 
 
 @pytest.mark.integration
-def test_foundation_eval_on_val_subset(hackmty_paths):
-    summary = run_foundation_eval(split="val", dataset_root=hackmty_paths.root, limit=5)
+def test_foundation_eval_on_val_subset(dataset_paths):
+    summary = run_foundation_eval(split="val", dataset_root=dataset_paths.root, limit=5)
 
     assert summary.num_calls == 5
     assert summary.mean_caller_iou > 0.5

@@ -66,7 +66,7 @@ def test_run_exploratory_analysis_ranks_features():
             side_effect=feature_rows,
         ):
             summary = run_exploratory_analysis(
-                split="val", dataset_root="resources/hackmty26-main"
+                split="val", dataset_root="resources/challenge-dataset"
             )
 
     assert summary.num_calls == 4

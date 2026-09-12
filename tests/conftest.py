@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 import soundfile as sf
 
-HACKMTY_ROOT = Path("resources/hackmty26-main")
+CHALLENGE_DATASET_ROOT = Path("resources/challenge-dataset")
 
 
 @pytest.fixture
@@ -30,23 +30,23 @@ def stereo_wav_b64(stereo_wav_bytes: bytes) -> str:
 
 
 @pytest.fixture
-def hackmty_paths():
-    if not (HACKMTY_ROOT / "manifest.csv").exists():
-        pytest.skip("hackmty26 resources not available")
+def dataset_paths():
+    if not (CHALLENGE_DATASET_ROOT / "manifest.csv").exists():
+        pytest.skip("challenge-dataset resources not available")
 
     from is_a_human.dataset.paths import resolve_dataset_paths
 
-    return resolve_dataset_paths(HACKMTY_ROOT)
+    return resolve_dataset_paths(CHALLENGE_DATASET_ROOT)
 
 
 @pytest.fixture
-def real_call_sample(hackmty_paths):
+def real_call_sample(dataset_paths):
     from is_a_human.dataset.loader import load_call
 
-    return load_call("call_0181ce113ebe", root=hackmty_paths.root, load_audio=True)
+    return load_call("call_0181ce113ebe", root=dataset_paths.root, load_audio=True)
 
 
 @pytest.fixture
-def real_call_b64(real_call_sample, hackmty_paths):
-    audio_path = hackmty_paths.audio_dir / f"{real_call_sample.anon_id}.wav"
+def real_call_b64(real_call_sample, dataset_paths):
+    audio_path = dataset_paths.audio_dir / f"{real_call_sample.anon_id}.wav"
     return base64.b64encode(audio_path.read_bytes()).decode("ascii")
