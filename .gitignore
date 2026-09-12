@@ -1,8 +1,8 @@
 # Challenge dataset — licensed for the hackathon only, do not redistribute
-dataset/
+/dataset/
 resources/hackmty26-main/
 resources/audio/
-audio/
+/audio/
 *.zip
 *.wav
 
