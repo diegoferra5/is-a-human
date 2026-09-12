@@ -9,6 +9,9 @@ resources/audio/
 # Original challenge brief (source PDF + raw text dump) — local only
 kb/source/
 
+# Matplotlib cache
+.matplotlib/
+
 # Python
 __pycache__/
 *.py[cod]

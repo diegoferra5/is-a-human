@@ -80,7 +80,7 @@ Strongest separators by effect size (Cohen's d):
 
 **Expanded multi-run analysis (train + val, 200 bootstrap runs):**
 
-Full report: `reports/explore-multi.md`
+Full report: `reports/explore-multi.md` · PDF: `reports/is-a-human-findings.pdf` · Plain-language PDF: `reports/is-a-human-findings-simple.pdf`
 
 | Result | Value |
 |---|---|

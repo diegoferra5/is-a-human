@@ -113,17 +113,18 @@ def _setup_styles():
             spaceAfter=8,
         )
     )
-    styles.add(
-        ParagraphStyle(
-            name="Bullet",
-            parent=styles["Normal"],
-            fontSize=10,
-            leading=13,
-            leftIndent=14,
-            bulletIndent=0,
-            spaceAfter=4,
+    if "ReportBullet" not in styles:
+        styles.add(
+            ParagraphStyle(
+                name="ReportBullet",
+                parent=styles["Normal"],
+                fontSize=10,
+                leading=13,
+                leftIndent=14,
+                bulletIndent=0,
+                spaceAfter=4,
+            )
         )
-    )
     return styles
 
 
@@ -331,7 +332,7 @@ def build_pdf() -> Path:
         "<b>Acoustic (unconventional):</b> RMS energy, zero-crossing rate, spectral centroid/flatness, HF/LF ratio, crest factor, intra-call silence gaps",
         "<b>Recovery (agent-turn-aligned):</b> caller response latency after agent stops, post-overlap recovery, barge-in/backchannel counts, agent turn fragmentation",
     ]:
-        story.append(Paragraph(f"• {item}", styles["Bullet"]))
+        story.append(Paragraph(f"• {item}", styles["ReportBullet"]))
 
     story.append(Paragraph("Analysis Protocol", styles["SubSection"]))
     for item in [
@@ -341,7 +342,7 @@ def build_pdf() -> Path:
         "Measure train/val rank correlation for feature stability",
         "Train logistic regression on top 3 stable features; evaluate on val",
     ]:
-        story.append(Paragraph(f"• {item}", styles["Bullet"]))
+        story.append(Paragraph(f"• {item}", styles["ReportBullet"]))
 
     story.append(Spacer(1, 0.2 * inch))
     story.append(Paragraph("Primary Hypothesis", styles["SubSection"]))
@@ -435,7 +436,7 @@ def build_pdf() -> Path:
         "<b>Recovery features:</b> Agent-aligned recovery CV separates on train (d = −1.32) but is secondary to acoustic features on val.",
         "<b>Generalization:</b> Val AUC (0.963) exceeds train AUC (0.922), suggesting acoustic features transfer without overfitting on this split.",
     ]:
-        story.append(Paragraph(f"• {item}", styles["Bullet"]))
+        story.append(Paragraph(f"• {item}", styles["ReportBullet"]))
 
     story.append(Paragraph("Recommended Next Steps", styles["Section"]))
     for item in [
@@ -446,7 +447,7 @@ def build_pdf() -> Path:
         "Optional: layer conversational recovery features as secondary signal",
         "Deploy endpoint and measure end-to-end latency under judging conditions",
     ]:
-        story.append(Paragraph(f"• {item}", styles["Bullet"]))
+        story.append(Paragraph(f"• {item}", styles["ReportBullet"]))
 
     story.append(Spacer(1, 0.3 * inch))
     story.append(
