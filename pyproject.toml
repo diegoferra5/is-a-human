@@ -26,6 +26,7 @@ dev = [
 
 [project.scripts]
 is-a-human-eval = "is_a_human.eval.cli:main"
+is-a-human-explore = "is_a_human.analysis.cli:main"
 is-a-human-serve = "is_a_human.api.cli:main"
 
 [tool.setuptools.packages.find]

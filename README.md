@@ -56,6 +56,9 @@ is-a-human-serve
 # Foundation eval on val split (requires dataset/)
 is-a-human-eval --split val
 
+# Exploratory analysis: human vs synthetic feature comparison
+is-a-human-explore --split val
+
 # Tests
 pytest
 ```
