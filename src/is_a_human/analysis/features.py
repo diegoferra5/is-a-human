@@ -113,6 +113,30 @@ class CallFeatures:
         )
 
 
+_ACOUSTIC_MARKERS = (
+    "rms", "zcr", "spectral", "hf_lf", "crest", "intra_silence", "segment_length",
+    "formant", "pitch", "f0", "hnr", "pause_entropy", "lfcc", "breath",
+    "cross_channel", "yield_decay", "echo", "bleed",
+)
+
+
+def acoustic_feature_names() -> tuple[str, ...]:
+    return tuple(
+        name
+        for name in CallFeatures.numeric_field_names()
+        if name != "duration_s" and any(marker in name for marker in _ACOUSTIC_MARKERS)
+    )
+
+
+def behavioral_feature_names() -> tuple[str, ...]:
+    acoustic = set(acoustic_feature_names())
+    return tuple(
+        name
+        for name in CallFeatures.numeric_field_names()
+        if name != "duration_s" and name not in acoustic
+    )
+
+
 def numeric_feature_vector(features: CallFeatures) -> np.ndarray:
     return np.array([float(getattr(features, name)) for name in CallFeatures.numeric_field_names()])
 

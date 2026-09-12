@@ -73,6 +73,7 @@ def test_run_exploratory_analysis_ranks_features():
     assert summary.top_separators[0].feature == "caller_response_latency_cv"
 
 
+@pytest.mark.acoustic
 @pytest.mark.integration
 def test_extract_call_features_on_real_audio(real_call_sample):
     features = extract_call_features(

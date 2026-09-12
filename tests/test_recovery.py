@@ -1,5 +1,9 @@
+import pytest
+
 from is_a_human.analysis.recovery import extract_recovery_features
 from is_a_human.dataset.loader import TurnSegment
+
+pytestmark = pytest.mark.behavioral
 
 
 def test_recovery_features_after_agent_stop():

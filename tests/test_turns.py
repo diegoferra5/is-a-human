@@ -1,12 +1,15 @@
 from unittest.mock import patch
 
 import numpy as np
+import pytest
 
 from is_a_human.turns.ledger import TurnType, build_turn_ledger
 from is_a_human.turns.metrics import compute_conversation_metrics
 from is_a_human.turns.validation import compare_turn_segments
 from is_a_human.turns.vad import VadSegment
 from is_a_human.dataset.loader import TurnSegment
+
+pytestmark = pytest.mark.vad
 
 
 @patch("is_a_human.turns.ledger.detect_dual_channel_segments")

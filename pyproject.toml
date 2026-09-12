@@ -27,6 +27,7 @@ dev = [
 [project.scripts]
 is-a-human-eval = "is_a_human.eval.cli:main"
 is-a-human-vad-benchmark = "is_a_human.eval.vad_cli:main"
+is-a-human-benchmark = "is_a_human.eval.benchmark_cli:main"
 is-a-human-explore = "is_a_human.analysis.cli:main"
 is-a-human-serve = "is_a_human.api.cli:main"
 
@@ -38,4 +39,8 @@ testpaths = ["tests"]
 pythonpath = ["src"]
 markers = [
     "integration: tests that load real audio and run VAD (slower)",
+    "vad: voice activity detection",
+    "acoustic: caller-channel acoustic features",
+    "semantic: transcript probe features",
+    "behavioral: turn-timing and recovery behaviour",
 ]

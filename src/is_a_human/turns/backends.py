@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal, Protocol
+from typing import Literal, Protocol, runtime_checkable
 
 import numpy as np
 
@@ -15,6 +15,7 @@ VadBackendName = Literal["silero", "energy", "hybrid"]
 DEFAULT_VAD_BACKEND: VadBackendName = "hybrid"
 
 
+@runtime_checkable
 class VadBackend(Protocol):
     name: str
 

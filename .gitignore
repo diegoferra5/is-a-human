@@ -16,6 +16,10 @@ CLAUDE.md
 transcripts/
 *.transcript.json
 
+# Generated pytest HTML report
+reports/test-results/
+reports/benchmarks/
+
 # Matplotlib cache
 .matplotlib/
 

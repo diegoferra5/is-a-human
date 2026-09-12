@@ -2,10 +2,18 @@ import pytest
 
 from is_a_human.eval.harness import run_foundation_eval
 
+pytestmark = pytest.mark.vad
+
 
 @pytest.mark.integration
-def test_foundation_eval_on_val_subset(dataset_paths):
+def test_foundation_eval_on_val_subset(dataset_paths, report_metrics):
     summary = run_foundation_eval(split="val", dataset_root=dataset_paths.root, limit=5)
+    report_metrics(
+        caller_iou=summary.mean_caller_iou,
+        agent_iou=summary.mean_agent_iou,
+        latency_ms=summary.mean_latency_ms,
+        p95_latency_ms=summary.p95_latency_ms,
+    )
 
     assert summary.num_calls == 5
     assert summary.mean_caller_iou > 0.5

@@ -7,6 +7,8 @@ from is_a_human.pipeline import process_call
 from is_a_human.turns.ledger import TurnType
 from is_a_human.turns.validation import compare_turn_segments
 
+pytestmark = pytest.mark.vad
+
 
 @pytest.mark.integration
 def test_process_call_on_real_audio(real_call_sample):
@@ -26,7 +28,7 @@ def test_process_call_on_real_audio(real_call_sample):
 
 
 @pytest.mark.integration
-def test_vad_iou_against_organizer_turns(real_call_sample):
+def test_vad_iou_against_organizer_turns(real_call_sample, report_metrics):
     result = process_call(
         real_call_sample.ch0_caller,
         real_call_sample.ch1_agent,
@@ -36,6 +38,7 @@ def test_vad_iou_against_organizer_turns(real_call_sample):
 
     caller_iou = compare_turn_segments(predicted, real_call_sample.turns, channel=0).iou
     agent_iou = compare_turn_segments(predicted, real_call_sample.turns, channel=1).iou
+    report_metrics(caller_iou=caller_iou, agent_iou=agent_iou, latency_ms=result.latency_ms)
 
     assert caller_iou > 0.5
     assert agent_iou > 0.5

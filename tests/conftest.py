@@ -6,6 +6,8 @@ import numpy as np
 import pytest
 import soundfile as sf
 
+pytest_plugins = ["html_reporter"]
+
 _DATASET_CANDIDATES = (
     Path("resources/challenge-dataset"),
     Path("resources/hackmty26-main"),
@@ -17,6 +19,17 @@ def _resolve_test_dataset_root() -> Path | None:
         if (root / "manifest.csv").exists() and (root / "turns").is_dir():
             return root
     return None
+
+
+@pytest.fixture
+def report_metrics(request):
+    """Attach extra numbers to the HTML report row for this test."""
+
+    def _record(**values):
+        for key, value in values.items():
+            request.node.user_properties.append((key, value))
+
+    return _record
 
 
 @pytest.fixture

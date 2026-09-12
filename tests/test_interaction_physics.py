@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from is_a_human.analysis.interaction_physics import (
     _agent_only_intervals,
@@ -6,6 +7,8 @@ from is_a_human.analysis.interaction_physics import (
     extract_interaction_physics_features,
 )
 from is_a_human.dataset.loader import TurnSegment
+
+pytestmark = pytest.mark.acoustic
 
 
 def test_agent_only_intervals_exclude_caller_overlap():

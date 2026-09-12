@@ -1,8 +1,11 @@
 import numpy as np
+import pytest
 
 from is_a_human.analysis.interaction_physics import extract_interaction_physics_features
 from is_a_human.analysis.micro_variation import extract_micro_variation_features
 from is_a_human.dataset.loader import TurnSegment
+
+pytestmark = pytest.mark.acoustic
 
 
 def _sine_burst(start_s: float, end_s: float, sample_rate: int, freq: float = 180.0) -> np.ndarray:

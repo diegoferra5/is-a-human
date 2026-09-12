@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from is_a_human.analysis.dsp import (
     estimate_f0,
@@ -7,6 +8,8 @@ from is_a_human.analysis.dsp import (
     normalized_sequence_jitter,
     shannon_entropy,
 )
+
+pytestmark = pytest.mark.acoustic
 
 
 def test_shannon_entropy_uniform_vs_peaked():

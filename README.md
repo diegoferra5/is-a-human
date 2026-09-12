@@ -59,8 +59,18 @@ is-a-human-eval --split val
 # Exploratory analysis: human vs synthetic feature comparison
 is-a-human-explore --split val
 
+# Layer benchmarks → reports/benchmarks/index.html
+is-a-human-benchmark
+is-a-human-benchmark --limit 20          # faster subset
+is-a-human-benchmark --suites vad        # VAD IoU only
+
 # Tests
-pytest
+pytest                          # all tests + HTML report at reports/test-results/index.html
+pytest -m "not integration"     # fast unit tests only
+pytest -m vad                   # VAD suite
+pytest -m acoustic              # acoustic suite
+pytest -m semantic              # transcript probe suite
+pytest -m behavioral            # turn-timing / recovery suite
 ```
 
 ## Current approach (Phase 0)

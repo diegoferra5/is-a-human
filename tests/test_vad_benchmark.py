@@ -3,15 +3,24 @@ import pytest
 from is_a_human.eval.vad_benchmark import run_vad_benchmark, run_vad_benchmark_all
 from is_a_human.turns.backends import available_backends
 
+pytestmark = pytest.mark.vad
+
 
 @pytest.mark.integration
 @pytest.mark.parametrize("backend", available_backends())
-def test_vad_benchmark_backend_on_val_subset(dataset_paths, backend):
+def test_vad_benchmark_backend_on_val_subset(dataset_paths, backend, report_metrics):
     result = run_vad_benchmark(
         backend=backend,
         split="val",
         dataset_root=dataset_paths.root,
         limit=3,
+    )
+    report_metrics(
+        backend=backend,
+        caller_iou=result.caller.mean_iou,
+        agent_iou=result.agent.mean_iou,
+        overall_iou=result.mean_overall_iou,
+        latency_ms=result.mean_latency_ms,
     )
 
     assert result.num_calls == 3
