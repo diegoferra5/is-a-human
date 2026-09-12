@@ -1,0 +1,28 @@
+# Challenge dataset — licensed for the hackathon only, do not redistribute
+dataset/
+audio/
+*.zip
+*.wav
+
+# Original challenge brief (source PDF + raw text dump) — local only
+kb/source/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+*.egg-info/
+
+# Models / large artifacts
+*.pt
+*.pth
+*.onnx
+*.joblib
+*.pkl
+
+# Env & OS
+.env
+.env.*
+.DS_Store
