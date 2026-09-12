@@ -7,6 +7,7 @@ from time import perf_counter
 
 import numpy as np
 
+from is_a_human.turns.backends import VadBackend, VadBackendName
 from is_a_human.turns.ledger import TurnLedger, build_turn_ledger
 from is_a_human.turns.metrics import ConversationMetrics, compute_conversation_metrics
 
@@ -22,10 +23,12 @@ def process_call(
     ch0_caller: np.ndarray,
     ch1_agent: np.ndarray,
     sample_rate: int,
+    *,
+    backend: VadBackend | VadBackendName | None = None,
 ) -> PipelineResult:
     """Run foundation pipeline on demuxed caller/agent audio."""
     started = perf_counter()
-    ledger = build_turn_ledger(ch0_caller, ch1_agent, sample_rate)
+    ledger = build_turn_ledger(ch0_caller, ch1_agent, sample_rate, backend=backend)
     metrics = compute_conversation_metrics(ledger)
     latency_ms = (perf_counter() - started) * 1000
     return PipelineResult(ledger=ledger, metrics=metrics, latency_ms=latency_ms)

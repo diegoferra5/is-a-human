@@ -6,7 +6,17 @@ import numpy as np
 import pytest
 import soundfile as sf
 
-CHALLENGE_DATASET_ROOT = Path("resources/challenge-dataset")
+_DATASET_CANDIDATES = (
+    Path("resources/challenge-dataset"),
+    Path("resources/hackmty26-main"),
+)
+
+
+def _resolve_test_dataset_root() -> Path | None:
+    for root in _DATASET_CANDIDATES:
+        if (root / "manifest.csv").exists() and (root / "turns").is_dir():
+            return root
+    return None
 
 
 @pytest.fixture
@@ -31,12 +41,13 @@ def stereo_wav_b64(stereo_wav_bytes: bytes) -> str:
 
 @pytest.fixture
 def dataset_paths():
-    if not (CHALLENGE_DATASET_ROOT / "manifest.csv").exists():
-        pytest.skip("challenge-dataset resources not available")
+    root = _resolve_test_dataset_root()
+    if root is None:
+        pytest.skip("dataset resources not available")
 
     from is_a_human.dataset.paths import resolve_dataset_paths
 
-    return resolve_dataset_paths(CHALLENGE_DATASET_ROOT)
+    return resolve_dataset_paths(root)
 
 
 @pytest.fixture

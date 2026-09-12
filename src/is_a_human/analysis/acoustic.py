@@ -4,7 +4,13 @@ from __future__ import annotations
 
 import numpy as np
 
-from is_a_human.dataset.loader import TurnSegment
+from typing import Protocol
+
+
+class _SpeechSegment(Protocol):
+    channel: int
+    start: float
+    end: float
 
 
 def _safe_stats(values: list[float]) -> tuple[float, float, float]:
@@ -65,7 +71,7 @@ def _crest_factor(frame: np.ndarray) -> float:
     return peak / rms if rms > 0 else 0.0
 
 
-def _silence_gaps(segments: list[TurnSegment], duration_s: float) -> list[float]:
+def _silence_gaps(segments: list[_SpeechSegment], duration_s: float) -> list[float]:
     channel_segments = sorted(
         [(segment.start, segment.end) for segment in segments if segment.channel == 0],
         key=lambda item: item[0],
@@ -92,11 +98,11 @@ def _silence_gaps(segments: list[TurnSegment], duration_s: float) -> list[float]
 def extract_acoustic_features(
     ch0_caller: np.ndarray,
     sample_rate: int,
-    organizer_turns: tuple[TurnSegment, ...],
+    speech_segments: tuple[_SpeechSegment, ...],
     duration_s: float,
 ) -> dict[str, float]:
     """Extract unconventional acoustic descriptors from caller speech segments."""
-    caller_segments = [segment for segment in organizer_turns if segment.channel == 0]
+    caller_segments = [segment for segment in speech_segments if segment.channel == 0]
 
     zcr_values: list[float] = []
     centroid_values: list[float] = []
@@ -119,7 +125,7 @@ def extract_acoustic_features(
         hf_lf_values.append(hf_lf)
         crest_values.append(_crest_factor(frame))
 
-    gap_mean, gap_std, gap_cv = _safe_stats(_silence_gaps(list(organizer_turns), duration_s))
+    gap_mean, gap_std, gap_cv = _safe_stats(_silence_gaps(list(speech_segments), duration_s))
     seg_len_mean, seg_len_std, seg_len_cv = _safe_stats(segment_lengths)
     rms_mean, rms_std, rms_cv = _safe_stats(rms_values)
     zcr_mean, zcr_std, _ = _safe_stats(zcr_values)

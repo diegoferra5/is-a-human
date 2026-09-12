@@ -8,7 +8,9 @@ from typing import Sequence
 
 import numpy as np
 
-from is_a_human.turns.vad import VadSegment, detect_dual_channel_segments, segments_to_mask
+from is_a_human.turns.backends import VadBackend, VadBackendName, get_backend
+from is_a_human.turns.segments import VadSegment
+from is_a_human.turns.vad import detect_dual_channel_segments, segments_to_mask
 
 
 class TurnType(str, Enum):
@@ -95,10 +97,13 @@ def build_turn_ledger(
     sample_rate: int,
     *,
     frame_duration_s: float = 0.032,
+    backend: VadBackend | VadBackendName | None = None,
 ) -> TurnLedger:
     """Build an aligned turn ledger from dual-channel VAD."""
     duration_s = max(len(ch0_caller), len(ch1_agent)) / sample_rate
-    speech_segments = detect_dual_channel_segments(ch0_caller, ch1_agent, sample_rate)
+    speech_segments = detect_dual_channel_segments(
+        ch0_caller, ch1_agent, sample_rate, backend=backend or get_backend()
+    )
 
     caller_segments = [segment for segment in speech_segments if segment.channel == 0]
     agent_segments = [segment for segment in speech_segments if segment.channel == 1]

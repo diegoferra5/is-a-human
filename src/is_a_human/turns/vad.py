@@ -2,32 +2,35 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Sequence
 
 import numpy as np
-import torch
-from silero_vad import get_speech_timestamps
 
-_vad_model = None
+from is_a_human.turns.backends import (
+    DEFAULT_VAD_BACKEND,
+    VadBackend,
+    VadBackendName,
+    available_backends,
+    get_backend,
+)
+from is_a_human.turns.segments import VadSegment
+from is_a_human.turns.silero_vad import get_vad_model
 
+__all__ = [
+    "DEFAULT_VAD_BACKEND",
+    "VadBackend",
+    "VadBackendName",
+    "VadSegment",
+    "available_backends",
+    "detect_dual_channel_segments",
+    "detect_speech_segments",
+    "get_backend",
+    "get_vad_model",
+    "segments_to_mask",
+]
 
-@dataclass(frozen=True)
-class VadSegment:
-    channel: int
-    start: float
-    end: float
-
-
-def _get_vad_model():
-    global _vad_model
-    if _vad_model is None:
-        _vad_model, _ = torch.hub.load(
-            repo_or_dir="snakers4/silero-vad",
-            model="silero_vad",
-            trust_repo=True,
-        )
-    return _vad_model
+# Backward-compatible alias used by api/app.py
+_get_vad_model = get_vad_model
 
 
 def detect_speech_segments(
@@ -35,36 +38,42 @@ def detect_speech_segments(
     sample_rate: int,
     *,
     channel: int,
-    min_speech_duration_s: float = 0.2,
+    backend: VadBackend | VadBackendName | None = None,
+    min_speech_duration_s: float = 0.12,
 ) -> list[VadSegment]:
-    """Run Silero VAD on a mono channel and return speech segments."""
+    """Run VAD on a mono channel and return speech segments."""
     if audio.size == 0:
         return []
 
-    model = _get_vad_model()
-    tensor = torch.from_numpy(audio).float()
-    timestamps = get_speech_timestamps(
-        tensor,
-        model,
-        sampling_rate=sample_rate,
-        min_speech_duration_ms=int(min_speech_duration_s * 1000),
-        return_seconds=True,
+    resolved = backend if isinstance(backend, VadBackend) else get_backend(
+        backend if isinstance(backend, str) else None
     )
-    return [
-        VadSegment(channel=channel, start=float(ts["start"]), end=float(ts["end"]))
-        for ts in timestamps
-    ]
+
+    if resolved.name == "silero" and min_speech_duration_s != 0.12:
+        from is_a_human.turns.silero_vad import detect_silero_segments
+
+        return detect_silero_segments(
+            audio,
+            sample_rate,
+            channel=channel,
+            min_speech_duration_s=min_speech_duration_s,
+        )
+
+    return resolved.detect_segments(audio, sample_rate, channel=channel)
 
 
 def detect_dual_channel_segments(
     ch0_caller: np.ndarray,
     ch1_agent: np.ndarray,
     sample_rate: int,
+    *,
+    backend: VadBackend | VadBackendName | None = None,
 ) -> list[VadSegment]:
     """Detect speech segments on both caller and agent channels."""
-    caller_segments = detect_speech_segments(ch0_caller, sample_rate, channel=0)
-    agent_segments = detect_speech_segments(ch1_agent, sample_rate, channel=1)
-    return caller_segments + agent_segments
+    resolved = backend if isinstance(backend, VadBackend) else get_backend(
+        backend if isinstance(backend, str) else None
+    )
+    return resolved.detect_dual_channel(ch0_caller, ch1_agent, sample_rate)
 
 
 def segments_to_mask(

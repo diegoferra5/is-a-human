@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Sequence
 
 from is_a_human.dataset.loader import TurnSegment
-from is_a_human.turns.vad import VadSegment
+from is_a_human.turns.segments import VadSegment
 
 
 @dataclass(frozen=True)

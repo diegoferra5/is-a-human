@@ -8,6 +8,22 @@ Plain-language guide to what we measured, what separated the classes, and what t
 
 ---
 
+## Pipeline & VAD
+
+How audio is processed before features are computed.
+
+| Component | Trained here? | Source |
+|---|---|---|
+| **Caller vs agent** | No | Fixed by stereo layout: **channel 0 = caller**, **channel 1 = agent** (challenge spec) |
+| **VAD (runtime)** | No | **Silero VAD** — pre-trained model from [`snakers4/silero-vad`](https://github.com/snakers4/silero-vad), loaded via `torch.hub` and run per channel at inference |
+| **Turn segments (batch)** | No | Organizer `turns/<anon_id>.json` — auto-derived reference VAD segments used for acoustic/recovery features and Silero validation (mean IoU: caller 0.811, agent 0.941) |
+| **Human vs synthetic label** | No | `manifest.csv` (`human` / `synthetic`) |
+| **Classifier** | Yes (offline) | Logistic regression on hand-crafted acoustic features — not yet wired into live `/detect` |
+
+The repo does **not** train VAD or infer speaker roles. Silero segments speech on each channel independently; the JSON files record **when** each channel speaks (`channel`, `start`, `end`), not **who** the speakers are. Conversational features use the Silero turn ledger; acoustic features in batch mode currently slice caller audio using organizer turn boundaries — live `/detect` must switch to Silero-derived segments before shipping.
+
+---
+
 ## The big picture
 
 Real human callers sound **messier**. Their volume, brightness, and timing jump around more from moment to moment. Synthetic callers sound **louder but smoother** — like a pipeline holding everything at a steady level.
