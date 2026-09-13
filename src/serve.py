@@ -50,7 +50,7 @@ def detect(inp: DetectIn):
     Path(tmp).unlink(missing_ok=True)
     return DetectOut(
         is_synthetic=bool(p >= 0.5),
-        confidence=round(abs(p - 0.5) * 2, 4),   # 0=unsure, 1=certain
+        confidence=round(max(p, 1 - p), 4),   # probability of the class we picked
         views={k: round(v, 4) for k, v in per_view.items()},
     )
 
