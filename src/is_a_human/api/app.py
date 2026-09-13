@@ -11,6 +11,8 @@ from pathlib import Path
 from time import perf_counter
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 from is_a_human.api.schemas import DetectRequest, DetectResponse, verdict_from_probability
 from is_a_human.audio.demux import demux_base64_telephony
@@ -25,6 +27,12 @@ class AppState:
 
 
 state = AppState()
+
+# Demo page: repo-root `demo/index.html` (server runs from the repo root, like the model path).
+DEMO_CANDIDATES = (
+    Path("demo/index.html"),
+    Path(__file__).resolve().parents[3] / "demo" / "index.html",
+)
 
 
 def _load_model(model_path: Path) -> TandemModel | None:
@@ -47,6 +55,16 @@ def create_app(model_path: Path | str | None = None) -> FastAPI:
         state.model = None
 
     app = FastAPI(title="is-a-human", version="0.1.0", lifespan=lifespan)
+    app.add_middleware(
+        CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
+    )
+
+    @app.get("/", include_in_schema=False)
+    async def demo_page():
+        for candidate in DEMO_CANDIDATES:
+            if candidate.exists():
+                return FileResponse(candidate, media_type="text/html")
+        raise HTTPException(status_code=404, detail="demo page not found")
 
     @app.get("/health")
     async def health():

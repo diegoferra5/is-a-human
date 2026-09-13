@@ -97,6 +97,8 @@ is-a-human-serve
   --split val --n 20
 ```
 
+Demo page: with the server running, open `http://localhost:8000/` (served from `demo/index.html`, no build step). Drop one or more stereo WAV calls, listen to them, and see the verdict, each head's vote, and the round-trip time. The endpoint field at the top can point at another machine running `is-a-human-serve`.
+
 ## Dataset
 
 **Both folders are required locally** and are not committed to git. Place them inside `resources/`:

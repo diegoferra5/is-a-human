@@ -42,3 +42,12 @@ venv/
 .env
 .env.*
 .DS_Store
+
+# Derived from the dataset or local tooling — never commit
+transcripts_trimmed/
+cache/
+analysis/
+resources/challenge-dataset
+.agents/
+.claude/
+skills-lock.json
