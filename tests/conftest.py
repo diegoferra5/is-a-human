@@ -71,6 +71,40 @@ def real_call_sample(dataset_paths):
 
 
 @pytest.fixture
+def tandem_model_path(tmp_path):
+    from is_a_human.analysis.features import CallFeatures
+    from is_a_human.detect.tandem import save_tandem, train_tandem_from_rows
+
+    def _row(label: str, talk: float, agent: float, rms: float) -> CallFeatures:
+        base = {name: 0.0 for name in CallFeatures.numeric_field_names()}
+        zcr = 0.9 if label == "human" else 0.1
+        base.update(
+            caller_talk_ratio=talk,
+            agent_talk_ratio=agent,
+            caller_rms_mean=rms,
+            caller_zcr_std=zcr,
+            caller_rms_cv=zcr,
+        )
+        return CallFeatures(anon_id=f"{label}_{talk}_{rms}", label=label, split="train", **base)
+
+    train = [
+        _row("human", 0.15, 0.55, 0.05),
+        _row("human", 0.16, 0.57, 0.06),
+        _row("human", 0.14, 0.56, 0.04),
+        _row("synthetic", 0.40, 0.30, 0.40),
+        _row("synthetic", 0.42, 0.28, 0.38),
+        _row("synthetic", 0.38, 0.32, 0.42),
+    ]
+    val = [
+        _row("human", 0.17, 0.54, 0.07),
+        _row("synthetic", 0.41, 0.29, 0.39),
+    ]
+    path = tmp_path / "tandem.json"
+    save_tandem(train_tandem_from_rows(train, val), path)
+    return path
+
+
+@pytest.fixture
 def real_call_b64(real_call_sample, dataset_paths):
     audio_path = dataset_paths.audio_dir / f"{real_call_sample.anon_id}.wav"
     return base64.b64encode(audio_path.read_bytes()).decode("ascii")

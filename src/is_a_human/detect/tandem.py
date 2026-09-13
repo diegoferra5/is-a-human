@@ -1,0 +1,239 @@
+"""Tandem detector: VAD-backed acoustic + behavioural heads, then fusion."""
+
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass
+from pathlib import Path
+from types import SimpleNamespace
+
+import numpy as np
+
+from is_a_human.analysis.classifier import TrainedLogistic, evaluate_classifier, train_logistic_regression
+from is_a_human.analysis.explore import _collect_features
+from is_a_human.analysis.features import CallFeatures, acoustic_feature_names, behavioral_feature_names
+from is_a_human.eval.layer_benchmark import select_top_features
+from is_a_human.turns.backends import DEFAULT_VAD_BACKEND
+
+DEFAULT_MODEL_PATH = Path("models/tandem.json")
+STACK_MARGIN = 0.01
+FUSION_FEATURES = ("p_acoustic", "p_behavioral")
+
+
+@dataclass
+class TandemModel:
+    fusion_type: str
+    vad_backend: str
+    acoustic: TrainedLogistic
+    behavioral: TrainedLogistic
+    fusion: TrainedLogistic | None
+    concatenated: TrainedLogistic | None
+    metrics: dict
+
+    def predict(self, features: CallFeatures) -> tuple[float, dict[str, float]]:
+        views = {
+            "acoustic": self.acoustic.predict_one(features),
+            "behavioral": self.behavioral.predict_one(features),
+        }
+        if self.fusion_type == "stacked" and self.fusion is not None:
+            stacked = SimpleNamespace(
+                label=features.label,
+                p_acoustic=views["acoustic"],
+                p_behavioral=views["behavioral"],
+            )
+            return self.fusion.predict_one(stacked), views
+        if self.concatenated is None:
+            raise RuntimeError("concatenated model missing")
+        return self.concatenated.predict_one(features), views
+
+
+def _metrics_dict(model: TrainedLogistic, rows: list) -> dict:
+    scored = evaluate_classifier(model, rows)
+    return {
+        "accuracy": round(scored.accuracy, 4),
+        "f1": round(scored.f1, 4),
+        "auc": round(scored.auc, 4),
+    }
+
+
+def _stratified_folds(labels: list[str], n_splits: int, seed: int = 0):
+    by_label: dict[str, list[int]] = {"human": [], "synthetic": []}
+    for index, label in enumerate(labels):
+        by_label.setdefault(label, []).append(index)
+    rng = np.random.default_rng(seed)
+    for label in by_label:
+        rng.shuffle(by_label[label])
+    n_splits = max(2, min(n_splits, min(len(idxs) for idxs in by_label.values() if idxs) or 2))
+    folds: list[list[int]] = [[] for _ in range(n_splits)]
+    for idxs in by_label.values():
+        for position, index in enumerate(idxs):
+            folds[position % n_splits].append(index)
+    for holdout in range(n_splits):
+        val_idx = folds[holdout]
+        train_idx = [index for fold, members in enumerate(folds) if fold != holdout for index in members]
+        if train_idx and val_idx:
+            yield train_idx, val_idx
+
+
+def _fit_stacked_fusion(
+    train_rows: list[CallFeatures],
+    acoustic_names: tuple[str, ...],
+    behavioral_names: tuple[str, ...],
+) -> TrainedLogistic:
+    labels = [row.label for row in train_rows]
+    oof = np.full((len(train_rows), 2), 0.5)
+    for train_idx, val_idx in _stratified_folds(labels, n_splits=5):
+        fold_train = [train_rows[i] for i in train_idx]
+        fold_val = [train_rows[i] for i in val_idx]
+        if {row.label for row in fold_train} != {"human", "synthetic"}:
+            continue
+        acoustic = train_logistic_regression(fold_train, acoustic_names)
+        behavioral = train_logistic_regression(fold_train, behavioral_names)
+        oof[val_idx, 0] = acoustic.predict_proba_rows(fold_val)
+        oof[val_idx, 1] = behavioral.predict_proba_rows(fold_val)
+    fusion_rows = [
+        SimpleNamespace(label=row.label, p_acoustic=float(oof[i, 0]), p_behavioral=float(oof[i, 1]))
+        for i, row in enumerate(train_rows)
+    ]
+    return train_logistic_regression(fusion_rows, FUSION_FEATURES)
+
+
+def train_tandem_from_rows(
+    train_rows: list[CallFeatures],
+    val_rows: list[CallFeatures],
+    *,
+    k: int = 5,
+) -> TandemModel:
+    """Fit heads + both fusion styles. Ship stacked if within STACK_MARGIN of concat val AUC."""
+    acoustic_names = tuple(
+        item["feature"] for item in select_top_features(train_rows, acoustic_feature_names(), k=k)
+    )
+    behavioral_names = tuple(
+        item["feature"] for item in select_top_features(train_rows, behavioral_feature_names(), k=k)
+    )
+    if not acoustic_names or not behavioral_names:
+        raise ValueError("Need labelled human and synthetic rows in train and val.")
+    if {row.label for row in train_rows} != {"human", "synthetic"}:
+        raise ValueError("Need labelled human and synthetic rows in train and val.")
+    if {row.label for row in val_rows} != {"human", "synthetic"}:
+        raise ValueError("Need labelled human and synthetic rows in train and val.")
+
+    acoustic = train_logistic_regression(train_rows, acoustic_names)
+    behavioral = train_logistic_regression(train_rows, behavioral_names)
+    fusion = _fit_stacked_fusion(train_rows, acoustic_names, behavioral_names)
+
+    concat_names = tuple(dict.fromkeys(acoustic_names + behavioral_names))
+    concatenated = train_logistic_regression(train_rows, concat_names)
+
+    stack_rows_val = [
+        SimpleNamespace(
+            label=row.label,
+            p_acoustic=acoustic.predict_one(row),
+            p_behavioral=behavioral.predict_one(row),
+        )
+        for row in val_rows
+    ]
+    stacked_val = _metrics_dict(fusion, stack_rows_val)
+    concat_val = _metrics_dict(concatenated, val_rows)
+    fusion_type = "stacked" if stacked_val["auc"] >= concat_val["auc"] - STACK_MARGIN else "concatenated"
+
+    return TandemModel(
+        fusion_type=fusion_type,
+        vad_backend=DEFAULT_VAD_BACKEND,
+        acoustic=acoustic,
+        behavioral=behavioral,
+        fusion=fusion,
+        concatenated=concatenated,
+        metrics={
+            "acoustic": {
+                "val": _metrics_dict(acoustic, val_rows),
+                "features_used": list(acoustic_names),
+                "top_separators": select_top_features(train_rows, acoustic_names, k=len(acoustic_names)),
+            },
+            "behavioral": {
+                "val": _metrics_dict(behavioral, val_rows),
+                "features_used": list(behavioral_names),
+                "top_separators": select_top_features(train_rows, behavioral_names, k=len(behavioral_names)),
+            },
+            "stacked": {"val": stacked_val, "top_separators": []},
+            "concatenated": {
+                "val": concat_val,
+                "features_used": list(concat_names),
+                "top_separators": select_top_features(train_rows, concat_names, k=len(concat_names)),
+            },
+        },
+    )
+
+
+def train_tandem(
+    dataset_root: Path | str | None = None,
+    *,
+    limit: int | None = None,
+    show_progress: bool = False,
+) -> TandemModel:
+    train_rows = _collect_features("train", dataset_root, limit=limit, show_progress=show_progress)
+    val_rows = _collect_features("val", dataset_root, limit=limit, show_progress=show_progress)
+    return train_tandem_from_rows(train_rows, val_rows)
+
+
+def save_tandem(model: TandemModel, path: Path | str = DEFAULT_MODEL_PATH) -> Path:
+    output = Path(path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "fusion_type": model.fusion_type,
+        "vad_backend": model.vad_backend,
+        "acoustic": model.acoustic.to_dict(),
+        "behavioral": model.behavioral.to_dict(),
+        "fusion": model.fusion.to_dict() if model.fusion else None,
+        "concatenated": model.concatenated.to_dict() if model.concatenated else None,
+        "metrics": model.metrics,
+    }
+    output.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    return output
+
+
+def load_tandem(path: Path | str = DEFAULT_MODEL_PATH) -> TandemModel:
+    payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    fusion_payload = payload.get("fusion")
+    concat_payload = payload.get("concatenated")
+    return TandemModel(
+        fusion_type=payload["fusion_type"],
+        vad_backend=payload.get("vad_backend", DEFAULT_VAD_BACKEND),
+        acoustic=TrainedLogistic.from_dict(payload["acoustic"]),
+        behavioral=TrainedLogistic.from_dict(payload["behavioral"]),
+        fusion=TrainedLogistic.from_dict(fusion_payload) if fusion_payload else None,
+        concatenated=TrainedLogistic.from_dict(concat_payload) if concat_payload else None,
+        metrics=payload.get("metrics") or {},
+    )
+
+
+def tandem_benchmark_suite(model: TandemModel) -> dict:
+    stacked = model.metrics.get("stacked", {}).get("val", {})
+    concat = model.metrics.get("concatenated", {}).get("val", {})
+    acoustic = model.metrics.get("acoustic", {}).get("val", {})
+    behavioral = model.metrics.get("behavioral", {}).get("val", {})
+    return {
+        "id": "tandem",
+        "title": "Tandem",
+        "purpose": "VAD ledger → acoustic + behavioural scores → fusion P(synthetic).",
+        "status": "ok",
+        "headline": f"{stacked.get('auc', 0):.3f} stacked val AUC",
+        "headline_detail": (
+            f"ship {model.fusion_type} · concat {concat.get('auc', 0):.3f} · "
+            f"acoustic {acoustic.get('auc', 0):.3f} · behavioural {behavioral.get('auc', 0):.3f}"
+        ),
+        "reason": "",
+        "table": {
+            "columns": ["model", "val_accuracy", "val_f1", "val_auc"],
+            "rows": [
+                ["acoustic", acoustic.get("accuracy"), acoustic.get("f1"), acoustic.get("auc")],
+                ["behavioral", behavioral.get("accuracy"), behavioral.get("f1"), behavioral.get("auc")],
+                ["stacked", stacked.get("accuracy"), stacked.get("f1"), stacked.get("auc")],
+                ["concatenated", concat.get("accuracy"), concat.get("f1"), concat.get("auc")],
+            ],
+        },
+        "train": {},
+        "val": stacked if model.fusion_type == "stacked" else concat,
+        "features_used": [model.fusion_type, model.vad_backend],
+        "top_separators": model.metrics.get("concatenated", {}).get("top_separators") or [],
+    }

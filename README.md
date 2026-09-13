@@ -2,7 +2,7 @@
 
 Human vs. synthetic caller detection for phone calls — a hackathon challenge entry.
 
-**Status:** Phase 0 foundations in place — audio ingest, turn pipeline, eval harness, and `POST /detect` stub.
+**Status:** Live `POST /detect` runs hybrid VAD, scores acoustic + behavioural heads, and fuses them. Semantic is wired but not in live fusion until transcripts exist.
 
 ## The problem
 
@@ -15,11 +15,17 @@ Audio is stereo, 8 kHz, 16-bit PCM. **Channel 0 is the caller** — the one to c
 A single HTTP endpoint, live during judging:
 
 ```
-POST /detect   ← stereo WAV, 8 kHz, base64-encoded
+POST /detect
+{
+  "call_id": "call_0181ce113ebe",
+  "audio_base64": "<base64 of the complete WAV>",
+  "sample_rate": 8000,
+  "channels": 2
+}
 → { "is_synthetic": true, "confidence": 0.87 }
 ```
 
-`is_synthetic` is required. `confidence` is optional and rewards calibration.
+`is_synthetic` is required. `confidence` is optional: certainty in the `is_synthetic` value (the judge recovers P(synthetic) as `confidence` when true and `1 - confidence` when false).
 
 Stack, model, framework and hosting are all open.
 
@@ -64,6 +70,9 @@ is-a-human-benchmark
 is-a-human-benchmark --limit 20          # faster subset
 is-a-human-benchmark --suites vad        # VAD IoU only
 
+# Train tandem detector (VAD → acoustic + behavioural → fusion)
+is-a-human-train                         # writes models/tandem.json
+
 # Tests
 pytest                          # all tests + HTML report at reports/test-results/index.html
 pytest -m "not integration"     # fast unit tests only
@@ -73,14 +82,20 @@ pytest -m semantic              # transcript probe suite
 pytest -m behavioral            # turn-timing / recovery suite
 ```
 
-## Current approach (Phase 0)
+## Current approach
 
-The live endpoint is contract-compliant but returns a **placeholder verdict** (`is_synthetic=false`, `confidence=0.5`) while we build detection signals on top of the foundation pipeline:
+`POST /detect` demuxes stereo audio, runs hybrid energy VAD, extracts acoustic + behavioural features from the VAD ledger, and fuses them. `is_synthetic` is `P(synthetic) >= 0.5`; `confidence` is certainty in that label. Train with `is-a-human-train` so `models/tandem.json` is present at serve time.
 
-1. In-memory base64 stereo WAV demux (`ch0` caller, `ch1` agent)
-2. Dual Silero VAD and aligned turn ledger (speech / overlap / silence)
-3. Conversation metrics (talk time, overlap, response latency)
-4. VAD validation against organizer `turns/*.json` via offline eval
+Score the live endpoint the same way the judge does (audio lives in `resources/audio/`):
+
+```bash
+is-a-human-serve
+.venv/bin/python resources/hackmty26-main/scripts/check_endpoint.py \
+  --url http://localhost:8000/detect \
+  --manifest resources/hackmty26-main/manifest.csv \
+  --audio-dir resources/audio \
+  --split val --n 20
+```
 
 ## Dataset
 

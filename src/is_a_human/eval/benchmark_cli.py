@@ -9,7 +9,7 @@ from is_a_human.eval.benchmark_html import render_benchmark_page
 from is_a_human.eval.layer_benchmark import format_benchmark_text, run_layer_benchmarks
 
 DEFAULT_OUTPUT = Path("reports/benchmarks/index.html")
-ALL_SUITES = ("vad", "acoustic", "semantic", "behavioral")
+ALL_SUITES = ("vad", "acoustic", "semantic", "behavioral", "tandem")
 
 
 def main() -> None:
@@ -25,8 +25,8 @@ def main() -> None:
     parser.add_argument("--limit", type=int, default=None, help="Max calls per split")
     parser.add_argument(
         "--suites",
-        default="vad,acoustic,semantic,behavioral",
-        help="Comma-separated: vad,acoustic,semantic,behavioral",
+        default="vad,acoustic,semantic,behavioral,tandem",
+        help="Comma-separated: vad,acoustic,semantic,behavioral,tandem",
     )
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--progress", action="store_true", default=True)

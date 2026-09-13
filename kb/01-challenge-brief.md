@@ -15,15 +15,18 @@ One HTTP endpoint, reachable throughout the judging window:
 
 ```
 POST /detect
-body: stereo WAV clip, 8 kHz, base64-encoded
-      channel 0 = caller (the one to classify)
-      channel 1 = agent
+{
+  "call_id": "...",
+  "audio_base64": "<base64 of the complete WAV>",
+  "sample_rate": 8000,
+  "channels": 2
+}
 ->
 { "is_synthetic": true, "confidence": 0.87 }
 ```
 
 - `is_synthetic` — **required** (boolean)
-- `confidence` — optional but recommended; used for tie-breaks and to reward calibration
+- `confidence` — optional; certainty in the `is_synthetic` value (0–1). When every answer has one, the judge reports AUC and Brier after recovering P(synthetic) as `confidence` if synthetic else `1 - confidence`.
 - Everything else free: model, language, framework, hosting
 - Ship a short README explaining the approach
 

@@ -181,6 +181,13 @@ def _latency_stats(latencies: list[float]) -> tuple[float, float, float]:
     return mean, std, cv
 
 
+def _as_turn_segments(segments) -> tuple[TurnSegment, ...]:
+    return tuple(
+        TurnSegment(channel=segment.channel, start=segment.start, end=segment.end)
+        for segment in segments
+    )
+
+
 def extract_call_features(
     anon_id: str,
     label: str,
@@ -188,14 +195,18 @@ def extract_call_features(
     ch0_caller: np.ndarray,
     ch1_agent: np.ndarray,
     sample_rate: int,
-    organizer_turns: tuple[TurnSegment, ...],
+    organizer_turns: tuple[TurnSegment, ...] | None = None,
     *,
     pipeline_result: PipelineResult | None = None,
+    turns: tuple[TurnSegment, ...] | None = None,
 ) -> CallFeatures:
-    """Extract full feature set from a call."""
+    """Extract features. Default turns are VAD ledger segments, not organizer JSON."""
     result = pipeline_result or process_call(ch0_caller, ch1_agent, sample_rate)
     ledger = result.ledger
     metrics = result.metrics
+    speech = turns if turns is not None else organizer_turns
+    if speech is None:
+        speech = _as_turn_segments(ledger.speech_segments)
 
     duration_s = max(len(ch0_caller), len(ch1_agent)) / sample_rate
     safe_duration = duration_s if duration_s > 0 else 1.0
@@ -210,11 +221,11 @@ def extract_call_features(
 
     overlap_events = sum(1 for event in ledger.events if event.type == TurnType.OVERLAP)
 
-    acoustic = extract_acoustic_features(ch0_caller, sample_rate, organizer_turns, duration_s)
-    recovery = extract_recovery_features(organizer_turns)
-    micro = extract_micro_variation_features(ch0_caller, sample_rate, organizer_turns, duration_s)
+    acoustic = extract_acoustic_features(ch0_caller, sample_rate, speech, duration_s)
+    recovery = extract_recovery_features(speech)
+    micro = extract_micro_variation_features(ch0_caller, sample_rate, speech, duration_s)
     interaction = extract_interaction_physics_features(
-        ch0_caller, ch1_agent, sample_rate, organizer_turns, duration_s
+        ch0_caller, ch1_agent, sample_rate, speech, duration_s
     )
 
     return CallFeatures(

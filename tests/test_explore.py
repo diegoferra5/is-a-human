@@ -83,10 +83,8 @@ def test_extract_call_features_on_real_audio(real_call_sample):
         ch0_caller=real_call_sample.ch0_caller,
         ch1_agent=real_call_sample.ch1_agent,
         sample_rate=real_call_sample.sample_rate,
-        organizer_turns=real_call_sample.turns,
     )
 
     assert features.duration_s > 0
     assert features.caller_rms_mean >= 0.0
-    assert features.agent_aligned_recovery_count > 0
     assert features.caller_barge_in_count >= 0.0

@@ -57,12 +57,13 @@ def test_fit_and_score_reports_val_auc():
 def test_missing_dataset_skips_suites():
     payload = run_layer_benchmarks(
         dataset_root="/nonexistent/path",
-        suites=("vad", "semantic"),
+        suites=("vad", "semantic", "tandem"),
         show_progress=False,
     )
     by_id = {suite["id"]: suite for suite in payload["suites"]}
     assert by_id["vad"]["status"] == "skipped"
     assert by_id["semantic"]["status"] == "skipped"
+    assert by_id["tandem"]["status"] == "skipped"
 
 
 def test_render_benchmark_page_includes_suites():

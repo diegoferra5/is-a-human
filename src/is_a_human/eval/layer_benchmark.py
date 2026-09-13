@@ -26,12 +26,14 @@ SUITE_TITLES = {
     "acoustic": "Acoustic",
     "semantic": "Semantic",
     "behavioral": "Behavioural",
+    "tandem": "Tandem",
 }
 PURPOSES = {
     "vad": "Match organizer speech segments so serve-time turns match train-time features.",
     "acoustic": "P(synthetic) from how the caller channel sounds.",
     "semantic": "P(synthetic) from agent-script traps and the caller's reply.",
     "behavioral": "P(synthetic) from who talks when (timing, overlap, recovery).",
+    "tandem": "VAD ledger → acoustic + behavioural scores → fused P(synthetic).",
 }
 
 
@@ -218,7 +220,7 @@ def run_layer_benchmarks(
     dataset_root: Path | str | None = None,
     split: str = "val",
     limit: int | None = None,
-    suites: Iterable[str] = ("vad", "acoustic", "semantic", "behavioral"),
+    suites: Iterable[str] = ("vad", "acoustic", "semantic", "behavioral", "tandem"),
     transcripts_dir: Path | str | None = None,
     show_progress: bool = False,
 ) -> dict:
@@ -230,7 +232,7 @@ def run_layer_benchmarks(
 
     train_rows: list = []
     val_rows: list = []
-    if {"acoustic", "behavioral"} & set(wanted):
+    if {"acoustic", "behavioral", "tandem"} & set(wanted):
         try:
             train_rows = _collect_features(
                 "train", dataset_root, limit=limit, show_progress=show_progress
@@ -273,6 +275,17 @@ def run_layer_benchmarks(
                     f"Need labelled transcripts in {transcript_root} for both splits.",
                 )
             )
+        elif suite == "tandem":
+            from is_a_human.detect.tandem import tandem_benchmark_suite, train_tandem_from_rows
+
+            if not train_rows or not val_rows:
+                results.append(_skipped("tandem", empty))
+                continue
+            try:
+                model = train_tandem_from_rows(train_rows, val_rows)
+                results.append(tandem_benchmark_suite(model))
+            except ValueError as exc:
+                results.append(_skipped("tandem", str(exc)))
         else:
             raise ValueError(f"Unknown suite: {suite}")
 

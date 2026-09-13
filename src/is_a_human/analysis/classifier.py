@@ -39,9 +39,31 @@ class TrainedLogistic:
     def predict_rows(self, rows: list[CallFeatures], threshold: float = 0.5) -> np.ndarray:
         return (self.predict_proba_rows(rows) >= threshold).astype(int)
 
-    def _transform(self, row: CallFeatures) -> np.ndarray:
+    def predict_one(self, row) -> float:
+        return float(self.predict_proba_rows([row])[0])
+
+    def _transform(self, row) -> np.ndarray:
         values = np.array([float(getattr(row, name)) for name in self.feature_names])
         return (values - self.mean) / self.std
+
+    def to_dict(self) -> dict:
+        return {
+            "feature_names": list(self.feature_names),
+            "weights": self.weights.tolist(),
+            "bias": float(self.bias),
+            "mean": self.mean.tolist(),
+            "std": self.std.tolist(),
+        }
+
+    @classmethod
+    def from_dict(cls, payload: dict) -> "TrainedLogistic":
+        return cls(
+            feature_names=tuple(payload["feature_names"]),
+            weights=np.array(payload["weights"], dtype=np.float64),
+            bias=float(payload["bias"]),
+            mean=np.array(payload["mean"], dtype=np.float64),
+            std=np.array(payload["std"], dtype=np.float64),
+        )
 
 
 def _binary_labels(rows: list[CallFeatures]) -> np.ndarray:
