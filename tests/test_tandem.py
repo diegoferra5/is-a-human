@@ -98,6 +98,7 @@ def test_train_tandem_separates_and_roundtrips(tmp_path):
     save_tandem(model, path)
     loaded = load_tandem(path)
     assert loaded.disagree_unsure == pytest.approx(model.disagree_unsure)
+    assert loaded.talkative_turn_min == model.talkative_turn_min
     probability, views = loaded.predict(val[1])
     assert 0.0 <= probability <= 1.0
     assert probability > 0.5
@@ -110,3 +111,25 @@ def test_default_heads_drop_rms_mean_and_collinear_latency():
     assert "caller_rms_mean" not in model.acoustic.feature_names
     assert model.behavioral.feature_names == BEHAVIORAL_HEAD_FEATURES
     assert "caller_response_latency_pos_mean_s" not in model.behavioral.feature_names
+
+
+def _with_quiet_patient(row: CallFeatures, *, turns: int) -> CallFeatures:
+    values = {name: getattr(row, name) for name in CallFeatures.numeric_field_names()}
+    values.update(
+        caller_response_latency_pos_median_s=1.51,
+        caller_rms_cv=0.28,
+        caller_segment_count=turns,
+    )
+    return CallFeatures(anon_id=row.anon_id, label=row.label, split=row.split, **values)
+
+
+def test_talkative_quiet_predict_flips_only_many_turns():
+    train, val = _toy_splits()
+    model = train_tandem_from_rows(train, val)
+    sparse = _with_quiet_patient(val[1], turns=10)
+    talkative = _with_quiet_patient(val[1], turns=24)
+    p_sparse, _ = model.predict(sparse)
+    p_talkative, _ = model.predict(talkative)
+    assert p_sparse >= 0.5
+    assert p_talkative < 0.5
+    assert p_talkative == pytest.approx(1.0 - p_sparse)

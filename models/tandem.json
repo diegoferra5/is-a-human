@@ -246,5 +246,11 @@
     },
     "disagree_unsure": 0.1
   },
-  "disagree_unsure": 0.1
+  "disagree_unsure": 0.1,
+  "quiet_patient": {
+    "wait_min_s": 1.4,
+    "wait_max_s": 2.0,
+    "rms_cv_max": 0.45,
+    "talkative_turn_min": 24
+  }
 }
