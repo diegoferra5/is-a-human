@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, fields
+from time import perf_counter
 from typing import Literal
 
 import numpy as np
@@ -11,6 +12,7 @@ from is_a_human.analysis.acoustic import extract_acoustic_features
 from is_a_human.analysis.interaction_physics import extract_interaction_physics_features
 from is_a_human.analysis.micro_variation import extract_micro_variation_features
 from is_a_human.analysis.recovery import extract_recovery_features
+from is_a_human.analysis.semantic import extract_semantic_features
 from is_a_human.dataset.loader import TurnSegment
 from is_a_human.pipeline import PipelineResult, process_call
 from is_a_human.turns.ledger import TurnLedger, TurnType
@@ -113,6 +115,31 @@ class CallFeatures:
         )
 
 
+_MICRO_ZEROS = {
+    "caller_formant_f1_std": 0.0,
+    "caller_formant_f2_std": 0.0,
+    "caller_formant_f3_std": 0.0,
+    "caller_formant_volatility_mean": 0.0,
+    "caller_pitch_jitter": 0.0,
+    "caller_pitch_shimmer": 0.0,
+    "caller_f0_std": 0.0,
+    "caller_f0_cv": 0.0,
+    "caller_hnr_mean": 0.0,
+    "caller_hnr_std": 0.0,
+    "caller_hnr_cv": 0.0,
+    "caller_pause_entropy": 0.0,
+    "caller_lfcc_delta_delta_std": 0.0,
+}
+_INTERACTION_ZEROS = {
+    "caller_breath_event_rate": 0.0,
+    "caller_breath_gap_ratio": 0.0,
+    "cross_channel_energy_correlation": 0.0,
+    "caller_yield_decay_mean_db": 0.0,
+    "caller_yield_decay_std_db": 0.0,
+    "caller_agent_echo_correlation": 0.0,
+    "caller_agent_bleed_correlation": 0.0,
+}
+
 _ACOUSTIC_MARKERS = (
     "rms", "zcr", "spectral", "hf_lf", "crest", "intra_silence", "segment_length",
     "formant", "pitch", "f0", "hnr", "pause_entropy", "lfcc", "breath",
@@ -188,7 +215,11 @@ def _as_turn_segments(segments) -> tuple[TurnSegment, ...]:
     )
 
 
-def extract_call_features(
+def _elapsed_ms(started: float) -> float:
+    return (perf_counter() - started) * 1000
+
+
+def extract_call_features_timed(
     anon_id: str,
     label: str,
     split: str,
@@ -199,9 +230,25 @@ def extract_call_features(
     *,
     pipeline_result: PipelineResult | None = None,
     turns: tuple[TurnSegment, ...] | None = None,
-) -> CallFeatures:
-    """Extract features. Default turns are VAD ledger segments, not organizer JSON."""
-    result = pipeline_result or process_call(ch0_caller, ch1_agent, sample_rate)
+    heavy: bool = True,
+    transcript_turns: list[dict] | None = None,
+) -> tuple[CallFeatures, dict[str, float | None]]:
+    """Extract features and record VAD / acoustic / semantic / behavioural ms."""
+    timings: dict[str, float | None] = {
+        "vad": None,
+        "acoustic": None,
+        "semantic": None,
+        "behavioral": None,
+        "acoustic_extras": None,
+    }
+
+    if pipeline_result is None:
+        started = perf_counter()
+        result = process_call(ch0_caller, ch1_agent, sample_rate)
+        timings["vad"] = _elapsed_ms(started)
+    else:
+        result = pipeline_result
+
     ledger = result.ledger
     metrics = result.metrics
     speech = turns if turns is not None else organizer_turns
@@ -211,24 +258,39 @@ def extract_call_features(
     duration_s = max(len(ch0_caller), len(ch1_agent)) / sample_rate
     safe_duration = duration_s if duration_s > 0 else 1.0
 
+    started = perf_counter()
+    acoustic = extract_acoustic_features(ch0_caller, sample_rate, speech, duration_s)
+    timings["acoustic"] = _elapsed_ms(started)
+
+    started = perf_counter()
     caller_durations = _segment_durations(ledger, channel=0)
     agent_durations = _segment_durations(ledger, channel=1)
     caller_latencies = _response_latencies(ledger, responder_channel=0)
     agent_latencies = _response_latencies(ledger, responder_channel=1)
-
     caller_lat_mean, caller_lat_std, caller_lat_cv = _latency_stats(caller_latencies)
     agent_lat_mean, agent_lat_std, agent_lat_cv = _latency_stats(agent_latencies)
-
     overlap_events = sum(1 for event in ledger.events if event.type == TurnType.OVERLAP)
-
-    acoustic = extract_acoustic_features(ch0_caller, sample_rate, speech, duration_s)
     recovery = extract_recovery_features(speech)
-    micro = extract_micro_variation_features(ch0_caller, sample_rate, speech, duration_s)
-    interaction = extract_interaction_physics_features(
-        ch0_caller, ch1_agent, sample_rate, speech, duration_s
-    )
+    timings["behavioral"] = _elapsed_ms(started)
 
-    return CallFeatures(
+    if transcript_turns:
+        started = perf_counter()
+        extract_semantic_features(transcript_turns)
+        timings["semantic"] = _elapsed_ms(started)
+
+    if heavy:
+        started = perf_counter()
+        micro = extract_micro_variation_features(ch0_caller, sample_rate, speech, duration_s)
+        interaction = extract_interaction_physics_features(
+            ch0_caller, ch1_agent, sample_rate, speech, duration_s
+        )
+        timings["acoustic_extras"] = _elapsed_ms(started)
+    else:
+        micro = dict(_MICRO_ZEROS)
+        interaction = dict(_INTERACTION_ZEROS)
+        timings["acoustic_extras"] = 0.0
+
+    features = CallFeatures(
         anon_id=anon_id,
         label=label,
         split=split,
@@ -255,3 +317,35 @@ def extract_call_features(
         **micro,
         **interaction,
     )
+    return features, timings
+
+
+def extract_call_features(
+    anon_id: str,
+    label: str,
+    split: str,
+    ch0_caller: np.ndarray,
+    ch1_agent: np.ndarray,
+    sample_rate: int,
+    organizer_turns: tuple[TurnSegment, ...] | None = None,
+    *,
+    pipeline_result: PipelineResult | None = None,
+    turns: tuple[TurnSegment, ...] | None = None,
+    heavy: bool = True,
+    transcript_turns: list[dict] | None = None,
+) -> CallFeatures:
+    """Extract features. Default turns are VAD ledger segments, not organizer JSON."""
+    features, _timings = extract_call_features_timed(
+        anon_id,
+        label,
+        split,
+        ch0_caller,
+        ch1_agent,
+        sample_rate,
+        organizer_turns,
+        pipeline_result=pipeline_result,
+        turns=turns,
+        heavy=heavy,
+        transcript_turns=transcript_turns,
+    )
+    return features
