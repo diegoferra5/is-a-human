@@ -115,6 +115,7 @@ class TandemModel:
             "acoustic": self.acoustic.predict_one(features),
             "behavioral": self.behavioral.predict_one(features),
         }
+        # Stacked fusion learns weights on OOF head scores; concat uses raw features.
         if self.fusion_type == "stacked" and self.fusion is not None:
             stacked = SimpleNamespace(
                 label=features.label,
@@ -189,6 +190,7 @@ def _fit_stacked_fusion(
     acoustic_names: tuple[str, ...],
     behavioral_names: tuple[str, ...],
 ) -> TrainedLogistic:
+    # Out-of-fold head scores prevent the fusion layer from overfitting train logits.
     labels = [row.label for row in train_rows]
     oof = np.full((len(train_rows), 2), 0.5)
     for train_idx, val_idx in _stratified_folds(labels, n_splits=5):

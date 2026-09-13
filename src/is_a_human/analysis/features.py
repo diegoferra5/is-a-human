@@ -265,6 +265,7 @@ def extract_call_features_timed(
         extract_semantic_features(transcript_turns)
         timings["semantic"] = _elapsed_ms(started)
 
+    # Live /detect uses heavy=False: shipped heads never consume these layers.
     if heavy:
         started = perf_counter()
         micro = extract_micro_variation_features(ch0_caller, sample_rate, speech, duration_s)

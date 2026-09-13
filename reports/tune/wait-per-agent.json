@@ -1,0 +1,248 @@
+{
+  "feature": "caller_wait_per_agent_turn",
+  "stats": {
+    "train": {
+      "new_human_mean": 0.6448,
+      "new_synth_mean": 1.4236,
+      "new_d": 0.4159,
+      "wait_human_mean": 1.2225,
+      "wait_synth_mean": 2.5593,
+      "wait_d": 1.8972,
+      "corr_with_pos_median": 0.3379
+    },
+    "val": {
+      "new_human_mean": 0.5395,
+      "new_synth_mean": 1.4611,
+      "new_d": 0.5383,
+      "wait_human_mean": 1.2236,
+      "wait_synth_mean": 2.5579,
+      "wait_d": 2.363,
+      "corr_with_pos_median": 0.2114
+    }
+  },
+  "before": {
+    "behavioral_features": [
+      "caller_response_latency_pos_median_s",
+      "agent_talk_ratio",
+      "agent_aligned_recovery_cv"
+    ],
+    "head_val": {
+      "accuracy": 0.9296,
+      "f1": 0.9296,
+      "auc": 0.9785
+    },
+    "acoustic_val": {
+      "accuracy": 0.8732,
+      "f1": 0.8831,
+      "auc": 0.9634
+    },
+    "stacked_raw_val": {
+      "accuracy": 0.9718,
+      "f1": 0.9706,
+      "auc": 0.9976
+    },
+    "concat_val": {
+      "accuracy": 0.9577,
+      "f1": 0.9565,
+      "auc": 0.9984
+    },
+    "fusion_weights": {
+      "acoustic": 1.6454,
+      "behavioral": 2.4137,
+      "bias": 0.5719
+    },
+    "val": {
+      "accuracy": 0.9718,
+      "auc": 0.9976,
+      "tpr": 0.9706,
+      "tnr": 0.973,
+      "n_miss": 2,
+      "misses": [
+        {
+          "anon_id": "call_6971b2685c1d",
+          "label": "human",
+          "p_fused": 0.8335,
+          "p_acoustic": 0.8595,
+          "p_behavioral": 0.5749,
+          "correct": false,
+          "caller_wait_per_agent_turn": 0.4008,
+          "pos_median": 1.745
+        },
+        {
+          "anon_id": "call_d4518fcb700a",
+          "label": "synthetic",
+          "p_fused": 0.3315,
+          "p_acoustic": 0.8695,
+          "p_behavioral": 0.2054,
+          "correct": false,
+          "caller_wait_per_agent_turn": 0.6676,
+          "pos_median": 1.74
+        }
+      ],
+      "watched": [
+        {
+          "anon_id": "call_569ffb0869eb",
+          "label": "human",
+          "p_fused": 0.0205,
+          "p_acoustic": 0.0205,
+          "p_behavioral": 0.947,
+          "correct": true,
+          "caller_wait_per_agent_turn": 1.135,
+          "pos_median": 2.5
+        },
+        {
+          "anon_id": "call_6971b2685c1d",
+          "label": "human",
+          "p_fused": 0.8335,
+          "p_acoustic": 0.8595,
+          "p_behavioral": 0.5749,
+          "correct": false,
+          "caller_wait_per_agent_turn": 0.4008,
+          "pos_median": 1.745
+        },
+        {
+          "anon_id": "call_d4518fcb700a",
+          "label": "synthetic",
+          "p_fused": 0.3315,
+          "p_acoustic": 0.8695,
+          "p_behavioral": 0.2054,
+          "correct": false,
+          "caller_wait_per_agent_turn": 0.6676,
+          "pos_median": 1.74
+        },
+        {
+          "anon_id": "call_e2d538297f0c",
+          "label": "human",
+          "p_fused": 0.2773,
+          "p_acoustic": 0.8792,
+          "p_behavioral": 0.4586,
+          "correct": true,
+          "caller_wait_per_agent_turn": 0.3979,
+          "pos_median": 1.51
+        }
+      ]
+    },
+    "train": {
+      "accuracy": 0.9645,
+      "auc": 0.9917,
+      "tpr": 0.9822,
+      "tnr": 0.9381,
+      "n_miss": 10,
+      "misses": [],
+      "watched": []
+    }
+  },
+  "after": {
+    "behavioral_features": [
+      "caller_response_latency_pos_median_s",
+      "agent_talk_ratio",
+      "agent_aligned_recovery_cv",
+      "caller_wait_per_agent_turn"
+    ],
+    "head_val": {
+      "accuracy": 0.9296,
+      "f1": 0.9296,
+      "auc": 0.9793
+    },
+    "acoustic_val": {
+      "accuracy": 0.8732,
+      "f1": 0.8831,
+      "auc": 0.9634
+    },
+    "stacked_raw_val": {
+      "accuracy": 0.9718,
+      "f1": 0.9706,
+      "auc": 0.9984
+    },
+    "concat_val": {
+      "accuracy": 0.9577,
+      "f1": 0.9565,
+      "auc": 0.9984
+    },
+    "fusion_weights": {
+      "acoustic": 1.7163,
+      "behavioral": 2.378,
+      "bias": 0.5385
+    },
+    "val": {
+      "accuracy": 0.9718,
+      "auc": 0.9984,
+      "tpr": 0.9706,
+      "tnr": 0.973,
+      "n_miss": 2,
+      "misses": [
+        {
+          "anon_id": "call_6971b2685c1d",
+          "label": "human",
+          "p_fused": 0.8267,
+          "p_acoustic": 0.8595,
+          "p_behavioral": 0.5649,
+          "correct": false,
+          "caller_wait_per_agent_turn": 0.4008,
+          "pos_median": 1.745
+        },
+        {
+          "anon_id": "call_d4518fcb700a",
+          "label": "synthetic",
+          "p_fused": 0.3486,
+          "p_acoustic": 0.8695,
+          "p_behavioral": 0.2084,
+          "correct": false,
+          "caller_wait_per_agent_turn": 0.6676,
+          "pos_median": 1.74
+        }
+      ],
+      "watched": [
+        {
+          "anon_id": "call_569ffb0869eb",
+          "label": "human",
+          "p_fused": 0.0205,
+          "p_acoustic": 0.0205,
+          "p_behavioral": 0.9464,
+          "correct": true,
+          "caller_wait_per_agent_turn": 1.135,
+          "pos_median": 2.5
+        },
+        {
+          "anon_id": "call_6971b2685c1d",
+          "label": "human",
+          "p_fused": 0.8267,
+          "p_acoustic": 0.8595,
+          "p_behavioral": 0.5649,
+          "correct": false,
+          "caller_wait_per_agent_turn": 0.4008,
+          "pos_median": 1.745
+        },
+        {
+          "anon_id": "call_d4518fcb700a",
+          "label": "synthetic",
+          "p_fused": 0.3486,
+          "p_acoustic": 0.8695,
+          "p_behavioral": 0.2084,
+          "correct": false,
+          "caller_wait_per_agent_turn": 0.6676,
+          "pos_median": 1.74
+        },
+        {
+          "anon_id": "call_e2d538297f0c",
+          "label": "human",
+          "p_fused": 0.2781,
+          "p_acoustic": 0.8792,
+          "p_behavioral": 0.453,
+          "correct": true,
+          "caller_wait_per_agent_turn": 0.3979,
+          "pos_median": 1.51
+        }
+      ]
+    },
+    "train": {
+      "accuracy": 0.9574,
+      "auc": 0.9812,
+      "tpr": 0.9822,
+      "tnr": 0.9204,
+      "n_miss": 12,
+      "misses": [],
+      "watched": []
+    }
+  }
+}

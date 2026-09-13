@@ -1,4 +1,8 @@
-"""FastAPI application for the /detect endpoint."""
+"""FastAPI application for the judge-facing /detect and /health endpoints.
+
+Request path: base64 WAV → demux (ch0=caller, ch1=agent) → tandem score → verdict.
+Model loads once at startup from models/tandem.json; 503 if the artifact is missing.
+"""
 
 from __future__ import annotations
 
@@ -54,6 +58,7 @@ def create_app(model_path: Path | str | None = None) -> FastAPI:
 
     @app.post("/detect", response_model=DetectResponse)
     async def detect(request: DetectRequest) -> DetectResponse:
+        # Judge sends the full stereo WAV; we only classify channel 0 (caller).
         try:
             ch0, ch1, sample_rate = demux_base64_telephony(request.audio_base64)
         except AudioValidationError as exc:
@@ -67,6 +72,7 @@ def create_app(model_path: Path | str | None = None) -> FastAPI:
 
         started = perf_counter()
         call_id = request.call_id or "live"
+        # heavy=False skips micro-variation / interaction-physics layers (~40 ms budget).
         probability, views, timings = detect_from_audio(
             state.model, ch0, ch1, sample_rate, call_id=call_id, heavy=False
         )

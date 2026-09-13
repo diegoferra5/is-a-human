@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>is-a-human · graph pack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+  :root{
+    --ground:#F7F8FA;--surface:#FFFFFF;--ink:#111720;--ink-soft:#38424F;
+    --muted:#6B7686;--line:#DFE3EA;--accent:#0E6E6E;--accent-soft:#E4F0EF;
+    --human:#1B6E4B;--synth:#B3352C;
+    --serif:"Source Serif 4", Georgia, serif;
+    --sans:"Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+    --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--ground);color:var(--ink);font-family:var(--serif);margin:0;font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  header{max-width:1100px;margin:0 auto;padding:40px 24px 20px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+  h1{font-family:var(--sans);font-weight:800;font-size:clamp(32px,5vw,48px);letter-spacing:-.025em;margin:0 0 10px}
+  .lede{color:var(--ink-soft);max-width:62ch;margin:0}
+  .lede a{color:var(--accent)}
+  nav{display:flex;flex-wrap:wrap;gap:8px 14px;max-width:1100px;margin:0 auto;padding:0 24px 28px;border-bottom:1px solid var(--line)}
+  nav a{font-family:var(--mono);font-size:12px;color:var(--accent);text-decoration:none}
+  main{max-width:1100px;margin:0 auto;padding:28px 24px 80px;display:grid;gap:18px}
+  @media(min-width:860px){main{grid-template-columns:1fr 1fr}}
+  .fig{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:20px 20px 16px;break-inside:avoid}
+  .fig.wide{grid-column:1 / -1}
+  .fig h2{font-family:var(--sans);font-weight:600;font-size:18px;letter-spacing:-.014em;margin:0 0 14px}
+  .bars{display:flex;flex-direction:column;gap:9px}
+  .br{display:grid;grid-template-columns:minmax(100px,38%) 1fr 54px;gap:8px;align-items:center}
+  .br span:first-child{font-family:var(--mono);font-size:11.5px;color:var(--ink-soft)}
+  .br span:last-child{font-family:var(--mono);font-size:12px;text-align:right;font-variant-numeric:tabular-nums}
+  .track{height:10px;background:#ECEEF2;border-radius:99px;overflow:hidden}
+  .f{height:100%;border-radius:99px}
+  .f.h{background:var(--human)} .f.s{background:var(--synth)} .f.a{background:var(--accent)} .f.m{background:#9AA3B0}
+  .src{font-family:var(--mono);font-size:11px;color:var(--muted);margin:10px 0 0}
+  .note{font-size:14.5px;color:var(--ink-soft);margin:0 0 12px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{text-align:left;padding:6px 8px 6px 0;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500}
+  .mono{font-family:var(--mono);font-size:12px}
+  .pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;height:130px;align-items:end}
+  .col{display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+  .stack{width:50%;display:flex;flex-direction:column-reverse;border-radius:4px 4px 0 0;overflow:hidden}
+  .col label{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .legend{display:flex;gap:14px;margin-top:8px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px}
+  .dots{display:flex;flex-wrap:wrap;gap:6px}
+  .dot{font-family:var(--mono);font-size:11px;border:1px solid var(--line);border-radius:3px;padding:3px 7px;color:var(--ink-soft)}
+  .dot.keep{border-color:#BEDCDA;background:var(--accent-soft);color:var(--accent)}
+  .dot.drop{color:var(--muted)}
+  @media print{
+    header,nav{break-after:avoid}
+    .fig{break-inside:avoid;page-break-inside:avoid}
+    body{background:#fff}
+  }
+</style>
+</head>
+<body>
+<header>
+  <p class="eyebrow">Screenshot / print pack</p>
+  <h1>Graphs for the presentation</h1>
+  <p class="lede"><a href="graficas.html">Español</a> · EN. One figure per card. Screenshot or print. Slides: <a href="results-deck.html">results-deck.html</a> · handout: <a href="judge-guide.html">judge-guide.html</a>.</p>
+</header>
+<nav>
+  <a href="#data">Dataset</a>
+  <a href="#audio">Audio / VAD</a>
+  <a href="#signals">Signals</a>
+  <a href="#model">Model</a>
+  <a href="#errors">Errors</a>
+  <a href="#ops">Latency / deploy</a>
+</nav>
+<main>
+
+<figure class="fig" id="data">
+  <h2>Dataset mix · 353 calls</h2>
+  <div class="bars">
+    <div class="br"><span>Human</span><div class="track"><div class="f h" style="width:42.5%"></div></div><span>150</span></div>
+    <div class="br"><span>Synthetic</span><div class="track"><div class="f s" style="width:57.5%"></div></div><span>203</span></div>
+  </div>
+  <p class="src">Mexican Spanish · mean ~148 s · 14.5 hours · ASR+LLM+TTS stack, not playback</p>
+</figure>
+
+<figure class="fig">
+  <h2>Train vs val, stacked by class</h2>
+  <div class="pair">
+    <div class="col">
+      <div class="stack" style="height:100%">
+        <div style="height:40%;background:var(--human)"></div>
+        <div style="height:60%;background:var(--synth)"></div>
+      </div>
+      <label>Train 282</label>
+    </div>
+    <div class="col">
+      <div class="stack" style="height:25%">
+        <div style="height:52%;background:var(--human)"></div>
+        <div style="height:48%;background:var(--synth)"></div>
+      </div>
+      <label>Val 71</label>
+    </div>
+  </div>
+  <div class="legend"><span><i style="background:var(--human)"></i>Human 113 / 37</span><span><i style="background:var(--synth)"></i>Synthetic 169 / 34</span></div>
+  <p class="src">Speaker-disjoint. Hidden set is a third group of speakers and voices.</p>
+</figure>
+
+<figure class="fig">
+  <h2>Call duration (seconds)</h2>
+  <div class="bars">
+    <div class="br"><span>Shortest</span><div class="track"><div class="f m" style="width:22%"></div></div><span>61</span></div>
+    <div class="br"><span>Mean</span><div class="track"><div class="f a" style="width:54%"></div></div><span>148</span></div>
+    <div class="br"><span>Longest</span><div class="track"><div class="f m" style="width:100%"></div></div><span>273</span></div>
+  </div>
+  <p class="src">Typical call ~2.5 minutes. Scoring is 22 ms on top of that.</p>
+</figure>
+
+<figure class="fig">
+  <h2>Stereo layout</h2>
+  <svg viewBox="0 0 640 130" width="100%" height="130">
+    <text x="0" y="14" fill="#6B7686" font-size="12" font-family="IBM Plex Mono, monospace">ch0 caller</text>
+    <rect x="0" y="22" width="640" height="32" fill="#ECEEF2" rx="4"/>
+    <rect x="40" y="27" width="80" height="22" fill="#0E6E6E" rx="3"/>
+    <rect x="200" y="27" width="100" height="22" fill="#0E6E6E" rx="3"/>
+    <rect x="480" y="27" width="70" height="22" fill="#0E6E6E" rx="3"/>
+    <text x="0" y="78" fill="#6B7686" font-size="12" font-family="IBM Plex Mono, monospace">ch1 agent</text>
+    <rect x="0" y="86" width="640" height="32" fill="#ECEEF2" rx="4"/>
+    <rect x="0" y="91" width="140" height="22" fill="#9AA3B0" rx="3"/>
+    <rect x="300" y="91" width="160" height="22" fill="#9AA3B0" rx="3"/>
+  </svg>
+  <p class="src">8 kHz · 16-bit PCM · we classify channel 0 only</p>
+</figure>
+
+<figure class="fig wide" id="audio">
+  <h2>VAD overlap vs organizer turns (val IoU)</h2>
+  <div class="bars">
+    <div class="br"><span>Silero neural</span><div class="track"><div class="f m" style="width:87.6%"></div></div><span>0.876</span></div>
+    <div class="br"><span>Energy 6 dB</span><div class="track"><div class="f m" style="width:80.7%"></div></div><span>0.807</span></div>
+    <div class="br"><span>Old AND hybrid</span><div class="track"><div class="f m" style="width:89.1%"></div></div><span>0.891</span></div>
+    <div class="br"><span>Fitted hybrid</span><div class="track"><div class="f a" style="width:97.9%"></div></div><span>0.979</span></div>
+  </div>
+  <p class="src">Not human-vs-synthetic accuracy. Fitted energy: 14 dB / 12th-percentile floor / 120 ms / 280 ms · ~9 ms</p>
+</figure>
+
+<figure class="fig">
+  <h2>Caller vs agent IoU (fitted hybrid)</h2>
+  <div class="bars">
+    <div class="br"><span>Caller</span><div class="track"><div class="f a" style="width:97.2%"></div></div><span>0.972</span></div>
+    <div class="br"><span>Agent</span><div class="track"><div class="f h" style="width:98.7%"></div></div><span>0.987</span></div>
+    <div class="br"><span>Silero caller</span><div class="track"><div class="f m" style="width:81.1%"></div></div><span>0.811</span></div>
+    <div class="br"><span>Silero agent</span><div class="track"><div class="f m" style="width:94.1%"></div></div><span>0.941</span></div>
+  </div>
+  <p class="src">Agent channel is clean; caller is noisy. Energy recovered the noisy side.</p>
+</figure>
+
+<figure class="fig">
+  <h2>Energy threshold plateau (train IoU)</h2>
+  <div class="bars">
+    <div class="br"><span>6 dB</span><div class="track"><div class="f m" style="width:80%"></div></div><span>0.80</span></div>
+    <div class="br"><span>10 dB</span><div class="track"><div class="f a" style="width:93%"></div></div><span>0.93</span></div>
+    <div class="br"><span>14 dB shipped</span><div class="track"><div class="f h" style="width:95%"></div></div><span>0.95</span></div>
+    <div class="br"><span>16 dB</span><div class="track"><div class="f a" style="width:94%"></div></div><span>0.94</span></div>
+  </div>
+  <p class="src">13–15 dB sits on a plateau. Not a one-call spike. Same pattern on val.</p>
+</figure>
+
+<figure class="fig" id="signals">
+  <h2>Median wait after the agent stops</h2>
+  <div class="bars">
+    <div class="br"><span>Human</span><div class="track"><div class="f h" style="width:48%"></div></div><span>1.22 s</span></div>
+    <div class="br"><span>Synthetic</span><div class="track"><div class="f s" style="width:100%"></div></div><span>2.56 s</span></div>
+  </div>
+  <p class="src">caller_response_latency_pos_median_s · val · d ≈ +1.90 train</p>
+</figure>
+
+<figure class="fig">
+  <h2>Loudness messiness (rms_cv)</h2>
+  <div class="bars">
+    <div class="br"><span>Human</span><div class="track"><div class="f h" style="width:100%"></div></div><span>0.64</span></div>
+    <div class="br"><span>Synthetic</span><div class="track"><div class="f s" style="width:39%"></div></div><span>0.25</span></div>
+  </div>
+  <p class="src">Shipped acoustic feature. Higher = volume wanders more.</p>
+</figure>
+
+<figure class="fig">
+  <h2>Average loudness trap (rms_mean)</h2>
+  <div class="bars">
+    <div class="br"><span>Human</span><div class="track"><div class="f h" style="width:46%"></div></div><span>0.07</span></div>
+    <div class="br"><span>Synthetic</span><div class="track"><div class="f s" style="width:100%"></div></div><span>0.15</span></div>
+  </div>
+  <p class="src">Train means. Strongest separator in the zip — dropped as an injection artifact.</p>
+</figure>
+
+<figure class="fig">
+  <h2>Buzziness variation (zcr_std)</h2>
+  <div class="bars">
+    <div class="br"><span>Human</span><div class="track"><div class="f h" style="width:100%"></div></div><span>0.070</span></div>
+    <div class="br"><span>Synthetic</span><div class="track"><div class="f s" style="width:46%"></div></div><span>0.032</span></div>
+  </div>
+  <p class="src">Train means ±. Zero-crossing rate std. d = −1.37 train / −1.81 val</p>
+</figure>
+
+<figure class="fig wide">
+  <h2>Shipped clues · |Cohen’s d| on train</h2>
+  <div class="bars">
+    <div class="br"><span>Wait after agent</span><div class="track"><div class="f a" style="width:100%"></div></div><span>1.90</span></div>
+    <div class="br"><span>Spectral flatness std</span><div class="track"><div class="f a" style="width:77%"></div></div><span>1.46</span></div>
+    <div class="br"><span>Brightness std</span><div class="track"><div class="f a" style="width:77%"></div></div><span>1.46</span></div>
+    <div class="br"><span>rms_cv</span><div class="track"><div class="f a" style="width:76%"></div></div><span>1.44</span></div>
+    <div class="br"><span>zcr_std</span><div class="track"><div class="f a" style="width:74%"></div></div><span>1.41</span></div>
+    <div class="br"><span>Agent talk ratio</span><div class="track"><div class="f a" style="width:70%"></div></div><span>1.32</span></div>
+    <div class="br"><span>Recovery CV</span><div class="track"><div class="f a" style="width:69%"></div></div><span>1.31</span></div>
+    <div class="br"><span>Crest factor CV</span><div class="track"><div class="f a" style="width:64%"></div></div><span>1.22</span></div>
+  </div>
+  <p class="src">0.8 is a large effect. Wait is higher for synthetics; the rest are higher for humans.</p>
+</figure>
+
+<figure class="fig">
+  <h2>Ideas that scored zero</h2>
+  <div class="bars">
+    <div class="br"><span>Breath event rate</span><div class="track"><div class="f m" style="width:2%"></div></div><span>0.00</span></div>
+    <div class="br"><span>Breath gap ratio</span><div class="track"><div class="f m" style="width:2%"></div></div><span>0.00</span></div>
+    <div class="br"><span>Pitch jitter (val)</span><div class="track"><div class="f m" style="width:1%"></div></div><span>0.01</span></div>
+    <div class="br"><span>Room echo</span><div class="track"><div class="f m" style="width:5%"></div></div><span>0.05</span></div>
+    <div class="br"><span>Entrainment</span><div class="track"><div class="f m" style="width:11%"></div></div><span>0.18</span></div>
+  </div>
+  <p class="src">|val d| · 8 kHz telephony hides inhale and room bleed</p>
+</figure>
+
+<figure class="fig">
+  <h2>Keep vs drop (68 features)</h2>
+  <div class="dots">
+    <span class="dot keep">rms_cv</span>
+    <span class="dot keep">zcr_std</span>
+    <span class="dot keep">crest_cv</span>
+    <span class="dot keep">flatness_std</span>
+    <span class="dot keep">centroid_std</span>
+    <span class="dot keep">pos_median wait</span>
+    <span class="dot keep">agent_talk</span>
+    <span class="dot keep">recovery_cv</span>
+    <span class="dot drop">rms_mean</span>
+    <span class="dot drop">breath</span>
+    <span class="dot drop">bleed / echo</span>
+    <span class="dot drop">formants</span>
+    <span class="dot drop">jitter / shimmer</span>
+    <span class="dot drop">LFCC</span>
+    <span class="dot drop">pause entropy</span>
+    <span class="dot drop">live Whisper</span>
+  </div>
+  <p class="src">Eight shipped. The rest were measured and left on the floor.</p>
+</figure>
+
+<figure class="fig wide" id="model">
+  <h2>Val accuracy ladder</h2>
+  <div class="bars">
+    <div class="br"><span>Acoustic only</span><div class="track"><div class="f m" style="width:87.3%"></div></div><span>87.3%</span></div>
+    <div class="br"><span>Behavioural only</span><div class="track"><div class="f m" style="width:93%"></div></div><span>93.0%</span></div>
+    <div class="br"><span>Stacked mixer</span><div class="track"><div class="f m" style="width:94.4%"></div></div><span>94.4%</span></div>
+    <div class="br"><span>+ disagreement</span><div class="track"><div class="f a" style="width:95.8%"></div></div><span>95.8%</span></div>
+    <div class="br"><span>+ talkative-quiet</span><div class="track"><div class="f h" style="width:97.2%"></div></div><span>97.2%</span></div>
+  </div>
+  <p class="src">69 of 71 · latest shipped path · reports/tune/all-inspect-talkative.md</p>
+</figure>
+
+<figure class="fig">
+  <h2>Val AUC by head</h2>
+  <div class="bars">
+    <div class="br"><span>Acoustic</span><div class="track"><div class="f a" style="width:96.3%"></div></div><span>0.963</span></div>
+    <div class="br"><span>Behavioural</span><div class="track"><div class="f a" style="width:97.9%"></div></div><span>0.979</span></div>
+    <div class="br"><span>Stacked</span><div class="track"><div class="f h" style="width:99.7%"></div></div><span>0.997</span></div>
+  </div>
+  <p class="src">Ranking quality. 0.5 = coin flip. 1.0 = every synth above every human.</p>
+</figure>
+
+<figure class="fig">
+  <h2>Mixer weights</h2>
+  <div class="bars">
+    <div class="br"><span>Behavioural</span><div class="track"><div class="f s" style="width:100%"></div></div><span>2.41</span></div>
+    <div class="br"><span>Acoustic</span><div class="track"><div class="f a" style="width:68%"></div></div><span>1.65</span></div>
+  </div>
+  <p class="src">Out-of-fold stacked fusion. Timing wins ties.</p>
+</figure>
+
+<figure class="fig">
+  <h2>Train vs val vs all</h2>
+  <div class="bars">
+    <div class="br"><span>Val 71</span><div class="track"><div class="f h" style="width:97.2%"></div></div><span>97.2%</span></div>
+    <div class="br"><span>Train 282</span><div class="track"><div class="f a" style="width:96.5%"></div></div><span>96.5%</span></div>
+    <div class="br"><span>All 353</span><div class="track"><div class="f a" style="width:96.6%"></div></div><span>96.6%</span></div>
+  </div>
+  <p class="src">Val is not a lucky slice. 341 / 353 correct.</p>
+</figure>
+
+<figure class="fig">
+  <h2>Catch rate vs clear rate (all 353)</h2>
+  <div class="bars">
+    <div class="br"><span>TPR synthetic</span><div class="track"><div class="f s" style="width:98%"></div></div><span>98.0%</span></div>
+    <div class="br"><span>TNR human</span><div class="track"><div class="f h" style="width:94.7%"></div></div><span>94.7%</span></div>
+    <div class="br"><span>Balanced acc</span><div class="track"><div class="f a" style="width:96.4%"></div></div><span>96.4%</span></div>
+  </div>
+  <p class="src">199 / 203 synths caught · 142 / 150 humans cleared</p>
+</figure>
+
+<figure class="fig">
+  <h2>Ablation: VAD × loudness</h2>
+  <table>
+    <thead><tr><th>Setup</th><th>Stacked</th><th>Acoustic</th></tr></thead>
+    <tbody>
+      <tr><td>Hybrid, no rms_mean</td><td>94.4%</td><td>87.3%</td></tr>
+      <tr><td>Hybrid + rms_mean</td><td>94.4%</td><td>90.1%</td></tr>
+      <tr><td>Silero, no rms_mean</td><td>94.4%</td><td>76.1%</td></tr>
+      <tr><td>Silero + rms_mean</td><td>95.8%</td><td>87.3%</td></tr>
+    </tbody>
+  </table>
+  <p class="src">Before gates. Loudness helps Silero look good; hybrid does not need it.</p>
+</figure>
+
+<figure class="fig" id="errors">
+  <h2>Val disagreement override</h2>
+  <div class="bars">
+    <div class="br"><span>Disagreements</span><div class="track"><div class="f m" style="width:100%"></div></div><span>10</span></div>
+    <div class="br"><span>Mixer already right</span><div class="track"><div class="f a" style="width:80%"></div></div><span>8</span></div>
+    <div class="br"><span>Saved by rule</span><div class="track"><div class="f h" style="width:10%"></div></div><span>1</span></div>
+    <div class="br"><span>Broke</span><div class="track"><div class="f s" style="width:2%"></div></div><span>0</span></div>
+  </div>
+  <p class="src">Fires only when |p_fused − 0.5| &lt; 0.10. Naive max-margin: save 2 / break 2.</p>
+</figure>
+
+<figure class="fig">
+  <h2>Full-set miss kinds</h2>
+  <div class="bars">
+    <div class="br"><span>Correct</span><div class="track"><div class="f h" style="width:96.6%"></div></div><span>341</span></div>
+    <div class="br"><span>Mixer wrong head</span><div class="track"><div class="f s" style="width:2%"></div></div><span>7</span></div>
+    <div class="br"><span>Both heads wrong</span><div class="track"><div class="f m" style="width:1.4%"></div></div><span>5</span></div>
+  </div>
+  <p class="src">60 disagreements; mixer still right on 53. A new feature only helps the 5 agree-misses.</p>
+</figure>
+
+<figure class="fig wide">
+  <h2>Two remaining val misses</h2>
+  <table>
+    <thead><tr><th>Call</th><th>Truth</th><th>Kind</th><th>Fused</th><th>Acoustic</th><th>Behavioural</th><th>Wait</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">6971</td><td>Human</td><td>agree</td><td>0.83</td><td>0.86</td><td>0.58</td><td>1.75 s</td></tr>
+      <tr><td class="mono">d4518</td><td>Synthetic</td><td>mixer</td><td>0.33</td><td>0.87</td><td>0.21</td><td>1.74 s</td></tr>
+    </tbody>
+  </table>
+  <p class="src">e2d538 (human, fused 0.72) was saved by the talkative-quiet gate. We froze the last two.</p>
+</figure>
+
+<figure class="fig" id="ops">
+  <h2>Live latency by layer (val mean)</h2>
+  <div class="bars">
+    <div class="br"><span>Unused extras</span><div class="track"><div class="f s" style="width:100%"></div></div><span>1360 ms</span></div>
+    <div class="br"><span>VAD</span><div class="track"><div class="f a" style="width:1.1%"></div></div><span>14 ms</span></div>
+    <div class="br"><span>Acoustic</span><div class="track"><div class="f a" style="width:0.6%"></div></div><span>7.5</span></div>
+    <div class="br"><span>Behavioural</span><div class="track"><div class="f a" style="width:0.2%"></div></div><span>0.2</span></div>
+    <div class="br"><span>Live total</span><div class="track"><div class="f h" style="width:1.6%"></div></div><span>22 ms</span></div>
+  </div>
+  <p class="src">Verdicts identical after dropping extras · p50 20.5 · max 42</p>
+</figure>
+
+<figure class="fig">
+  <h2>What a bank would run</h2>
+  <p class="note">CPU laptop. Small JSON of logistic weights. No GPU. No transcription at serve. Telephony-grade 8 kHz. One POST /detect.</p>
+  <div class="bars">
+    <div class="br"><span>Call length</span><div class="track"><div class="f m" style="width:100%"></div></div><span>148 s</span></div>
+    <div class="br"><span>Score time</span><div class="track"><div class="f h" style="width:1.5%"></div></div><span>0.022 s</span></div>
+  </div>
+  <p class="src">Score time is ~1/6700 of the conversation.</p>
+</figure>
+
+<figure class="fig">
+  <h2>Judge recoveries from confidence</h2>
+  <table>
+    <thead><tr><th>We say</th><th>P(synth)</th><th>is_synthetic</th><th>confidence</th></tr></thead>
+    <tbody>
+      <tr><td>Sure machine</td><td>0.87</td><td>true</td><td>0.87</td></tr>
+      <tr><td>Sure person</td><td>0.12</td><td>false</td><td>0.88</td></tr>
+      <tr><td>Coin flip</td><td>0.51</td><td>true</td><td>0.51</td></tr>
+    </tbody>
+  </table>
+  <p class="src">Judge recovers P(synth) as confidence if true, else 1 − confidence. Enables AUC and Brier.</p>
+</figure>
+
+</main>
+</body>
+</html>

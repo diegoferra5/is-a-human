@@ -48,6 +48,7 @@ def _mask_to_events(
     start_idx = 0
 
     for idx in range(ch0_mask.size):
+        # Overlap takes precedence: both channels active in the same frame.
         if ch0_mask[idx] and ch1_mask[idx]:
             frame_type = TurnType.OVERLAP
             frame_channel = None

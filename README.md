@@ -56,7 +56,7 @@ pip install -e ".[dev]"
 ## Run locally
 
 ```bash
-# API (POST /detect + GET /health)
+# API (POST /detect + GET /health) — see SERVE.md for LAN / tunnel / judge URLs
 is-a-human-serve
 
 # Foundation eval on val split (requires dataset/)

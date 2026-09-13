@@ -26,7 +26,10 @@ def process_call(
     *,
     backend: VadBackend | VadBackendName | None = None,
 ) -> PipelineResult:
-    """Run foundation pipeline on demuxed caller/agent audio."""
+    """Run foundation pipeline on demuxed caller/agent audio.
+
+    VAD segments both channels, builds a turn ledger, then derives conversation metrics.
+    """
     started = perf_counter()
     ledger = build_turn_ledger(ch0_caller, ch1_agent, sample_rate, backend=backend)
     metrics = compute_conversation_metrics(ledger)

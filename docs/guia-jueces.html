@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>is-a-human — guía para jueces</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+  :root{
+    --ground:#F7F8FA;
+    --surface:#FFFFFF;
+    --ink:#111720;
+    --ink-soft:#38424F;
+    --muted:#6B7686;
+    --line:#DFE3EA;
+    --accent:#0E6E6E;
+    --accent-soft:#E4F0EF;
+    --human:#1B6E4B;
+    --human-soft:#E4F3EC;
+    --synth:#B3352C;
+    --synth-soft:#F8E8E6;
+    --amber:#8A5A12;
+    --serif:"Source Serif 4", Georgia, serif;
+    --sans:"Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+    --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--ground);
+    color:var(--ink);
+    font-family:var(--serif);
+    font-size:17px;
+    line-height:1.6;
+    margin:0;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:820px;margin:0 auto;padding:0 28px 96px}
+  header{padding:48px 0 32px;border-bottom:1px solid var(--line);margin-bottom:40px}
+  .eyebrow{
+    font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--muted);margin:0 0 16px;
+  }
+  h1{
+    font-family:var(--sans);font-weight:800;
+    font-size:clamp(34px,6vw,52px);line-height:1.04;letter-spacing:-.025em;
+    margin:0 0 14px;text-wrap:balance;
+  }
+  .thesis{font-size:20px;line-height:1.5;color:var(--ink-soft);margin:0;max-width:52ch}
+  .thesis b{color:var(--ink);font-weight:600}
+  .share{
+    margin-top:18px;font-family:var(--mono);font-size:12px;color:var(--muted);
+  }
+  .share a{color:var(--accent)}
+  nav{
+    display:flex;flex-wrap:wrap;gap:8px 14px;
+    padding:0 0 28px;margin:0 0 8px;
+    border-bottom:1px solid var(--line);
+  }
+  nav a{
+    font-family:var(--mono);font-size:12px;letter-spacing:.04em;
+    color:var(--accent);text-decoration:none;
+  }
+  nav a:hover{text-decoration:underline}
+  section{margin-bottom:56px}
+  h2{
+    font-family:var(--sans);font-weight:600;font-size:14px;
+    color:var(--accent);margin:0 0 14px;
+    display:flex;align-items:center;gap:10px;
+  }
+  h2::after{content:"";flex:1;height:1px;background:var(--line)}
+  h3{
+    font-family:var(--sans);font-weight:600;font-size:20px;
+    letter-spacing:-.014em;margin:22px 0 10px;
+  }
+  p{margin:0 0 14px}
+  p:last-child{margin-bottom:0}
+  .big{font-size:18.5px;color:var(--ink-soft)}
+  .src{
+    font-family:var(--mono);font-size:12px;color:var(--muted);
+    margin:8px 0 0;
+  }
+  .stats{
+    display:grid;grid-template-columns:repeat(2,1fr);gap:12px;
+    margin:22px 0 8px;
+  }
+  @media(min-width:640px){.stats{grid-template-columns:repeat(4,1fr)}}
+  .stat{
+    background:var(--surface);border:1px solid var(--line);
+    border-radius:6px;padding:14px 14px 16px;
+  }
+  .stat .v{
+    font-family:var(--sans);font-weight:800;font-size:28px;
+    letter-spacing:-.03em;line-height:1;margin:0 0 6px;
+  }
+  .stat .k{
+    font-family:var(--mono);font-size:11px;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--muted);
+  }
+  .stat.ok .v{color:var(--human)}
+  .rule{
+    background:var(--accent-soft);border-left:3px solid var(--accent);
+    border-radius:0 5px 5px 0;padding:16px 20px;margin:0 0 22px;
+  }
+  .rule p{margin:0;font-size:16.5px}
+  .two,.three{display:grid;gap:14px;margin-top:16px}
+  @media(min-width:640px){.two{grid-template-columns:1fr 1fr}}
+  .sig{
+    background:var(--surface);border:1px solid var(--line);
+    border-radius:6px;padding:20px 20px 22px;
+  }
+  .sig h3{margin-top:0}
+  .sig p{font-size:16px;color:var(--ink-soft)}
+  .layer{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--accent);background:var(--accent-soft);
+    padding:3px 8px;border-radius:3px;display:inline-block;margin-bottom:10px;
+  }
+  table{width:100%;border-collapse:collapse;font-size:14.5px;margin:12px 0 6px}
+  th,td{text-align:left;padding:8px 10px 8px 0;border-bottom:1px solid var(--line);vertical-align:top}
+  th{
+    font-family:var(--mono);font-size:11px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--muted);font-weight:500;
+  }
+  td.mono,code,.term{
+    font-family:var(--mono);font-size:12.5px;
+  }
+  .chart{
+    background:var(--surface);border:1px solid var(--line);
+    border-radius:6px;padding:16px 16px 12px;margin-top:12px;
+  }
+  .chart h3{margin:0 0 12px;font-size:16px}
+  .bars{display:flex;flex-direction:column;gap:10px}
+  .bar-row{display:grid;grid-template-columns:148px 1fr 52px;gap:10px;align-items:center}
+  .bar-row span:first-child{
+    font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);
+  }
+  .bar-row span:last-child{
+    font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums;
+    text-align:right;
+  }
+  .track{height:10px;background:#ECEEF2;border-radius:99px;overflow:hidden}
+  .fill{height:100%;border-radius:99px}
+  .fill.human{background:var(--human)}
+  .fill.synth{background:var(--synth)}
+  .fill.accent{background:var(--accent)}
+  .fill.muted{background:#9AA3B0}
+  .pair{display:grid;grid-template-columns:1fr 1fr;gap:8px;height:140px;align-items:end;padding:8px 8px 0}
+  .col{display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+  .col .stack{width:56%;display:flex;flex-direction:column-reverse;border-radius:4px 4px 0 0;overflow:hidden;min-height:8px}
+  .col .h,.col .s{width:100%}
+  .col label{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .legend{display:flex;gap:16px;margin-top:10px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px}
+  .legend .h{background:var(--human)}
+  .legend .s{background:var(--synth)}
+  .donut-wrap{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+  .pipeline{
+    display:flex;flex-direction:column;align-items:center;gap:0;margin:16px 0;
+  }
+  .node{
+    font-family:var(--sans);font-size:14px;font-weight:600;
+    background:var(--surface);border:1px solid var(--line);
+    border-radius:6px;padding:10px 16px;text-align:center;min-width:220px;
+  }
+  .node.final{border-color:var(--accent);color:var(--accent)}
+  .fork{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:460px}
+  .arrow{color:var(--muted);font-size:18px;line-height:1;padding:4px 0}
+  details{border-bottom:1px solid var(--line);padding:10px 0}
+  details summary{
+    font-family:var(--sans);font-weight:600;cursor:pointer;list-style:none;
+  }
+  details summary::-webkit-details-marker{display:none}
+  details p,details ul{margin:10px 0 4px;color:var(--ink-soft);font-size:16px}
+  details ul{padding-left:18px}
+  .script p{font-size:17px;color:var(--ink-soft)}
+  footer{
+    font-family:var(--mono);font-size:12px;color:var(--muted);
+    border-top:1px solid var(--line);padding-top:16px;
+  }
+  @media print{
+    body{background:#fff}
+    nav,.share{display:none}
+    section{break-inside:avoid}
+    .wrap{max-width:none;padding:0 12mm 12mm}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">is-a-human · guía para jueces para compartir</p>
+  <h1>¿La persona que llama es humana, o una máquina?</h1>
+  <p class="thesis">Un recorrido de este sistema para quien no escribe código — con los nombres técnicos exactos que vas a querer frente a los jueces. Las cifras de abajo salen de las llamadas etiquetadas de entrenamiento (train) y validación (val), <b>no</b> del set oculto de evaluación.</p>
+  <p class="share">Español · <a href="judge-guide.html">EN</a> · diapositivas: <a href="presentacion.html">presentacion.html</a> · gráficas: <a href="graficas.html">graficas.html</a>. Imprime a PDF desde el navegador.</p>
+</header>
+
+<nav>
+  <a href="#story">La historia</a>
+  <a href="#pipeline">Cómo funciona</a>
+  <a href="#signals">Las dos pistas</a>
+  <a href="#scorecard">Resultados</a>
+  <a href="#brief">Brief para jueces</a>
+  <a href="#glossary">Glosario</a>
+</nav>
+
+<section id="story">
+  <h2>La historia</h2>
+  <div class="rule">
+    <p>Los bancos en América Latina siguen atendiendo a mucha gente por teléfono. Los estafadores ya pueden marcar esas líneas con una pila sintética completa: reconocimiento de voz, un modelo de lenguaje y una voz clonada. Este sistema escucha una llamada grabada y responde una sola pregunta: <b>¿la persona que llama era humana de verdad?</b></p>
+  </div>
+
+  <div class="stats">
+    <div class="stat ok"><p class="v">97.2%</p><p class="k">Acierto Val · 69 de 71</p></div>
+    <div class="stat ok"><p class="v">0.997</p><p class="k">AUC Val · stacked fusion</p></div>
+    <div class="stat"><p class="v">22 ms</p><p class="k">Tiempo medio de puntuación en vivo</p></div>
+    <div class="stat"><p class="v">353</p><p class="k">Llamadas etiquetadas en español mexicano</p></div>
+  </div>
+
+  <h3>Lo que escucha el banco</h3>
+  <p class="big">Cada muestra es una llamada telefónica a dos bandas. El banco ya opera un agente de voz con IA. Una segunda voz — la del llamante — intenta completar un guion de atención a clientes. Nunca intentamos identificar a la persona. Solo decidimos si esa voz que entra es humana o sintética.</p>
+
+  <div class="chart">
+    <h3>Llamada estéreo · dos pistas en un archivo</h3>
+    <svg viewBox="0 0 640 150" width="100%" height="150" role="img" aria-label="Llamante en el canal 0, agente en el canal 1">
+      <text x="0" y="16" fill="#6B7686" font-size="12" font-family="IBM Plex Mono, ui-monospace, monospace">Canal 0 · llamante (clasificar esta voz)</text>
+      <rect x="0" y="24" width="640" height="36" fill="#ECEEF2" rx="4"/>
+      <rect x="40" y="30" width="70" height="24" fill="#0E6E6E" rx="3"/>
+      <rect x="180" y="30" width="110" height="24" fill="#0E6E6E" rx="3"/>
+      <rect x="360" y="30" width="50" height="24" fill="#0E6E6E" rx="3"/>
+      <rect x="500" y="30" width="90" height="24" fill="#0E6E6E" rx="3"/>
+      <text x="0" y="86" fill="#6B7686" font-size="12" font-family="IBM Plex Mono, ui-monospace, monospace">Canal 1 · agente del banco (solo contexto)</text>
+      <rect x="0" y="94" width="640" height="36" fill="#ECEEF2" rx="4"/>
+      <rect x="0" y="100" width="130" height="24" fill="#9AA3B0" rx="3"/>
+      <rect x="300" y="100" width="150" height="24" fill="#9AA3B0" rx="3"/>
+      <rect x="470" y="100" width="40" height="24" fill="#9AA3B0" rx="3"/>
+    </svg>
+    <p class="src">Telefonía estéreo, 8 kHz, PCM de 16 bits. Los jueces envían el WAV completo en base64 a POST /detect.</p>
+  </div>
+
+  <h3>Quién está en el conjunto de datos</h3>
+  <div class="two">
+    <div class="chart">
+      <h3>Llamantes humanos vs sintéticos</h3>
+      <div class="donut-wrap">
+        <svg viewBox="0 0 42 42" width="140" height="140" role="img" aria-label="150 humanos, 203 sintéticos">
+          <circle cx="21" cy="21" r="15.9" fill="none" stroke="#E4F3EC" stroke-width="6"/>
+          <circle cx="21" cy="21" r="15.9" fill="none" stroke="#1B6E4B" stroke-width="6"
+            stroke-dasharray="42.5 57.5" stroke-dashoffset="25" transform="rotate(-90 21 21)"/>
+          <circle cx="21" cy="21" r="15.9" fill="none" stroke="#B3352C" stroke-width="6"
+            stroke-dasharray="57.5 42.5" stroke-dashoffset="-17.5" transform="rotate(-90 21 21)"/>
+          <text x="21" y="20" text-anchor="middle" font-size="6" font-family="Bricolage Grotesque, sans-serif" font-weight="700" fill="#111720">353</text>
+          <text x="21" y="25.5" text-anchor="middle" font-size="3.2" font-family="IBM Plex Mono, monospace" fill="#6B7686">llamadas</text>
+        </svg>
+        <div>
+          <p><b style="color:var(--human)">150 humanos</b> · 42%</p>
+          <p><b style="color:var(--synth)">203 sintéticos</b> · 58%</p>
+          <p class="src">Lo sintético no es un clip reproducido. Es una pila en vivo: ASR + LLM + TTS marcando el mismo número.</p>
+        </div>
+      </div>
+    </div>
+    <div class="chart">
+      <h3>Train vs val, por clase</h3>
+      <div class="pair" aria-label="Train 113 humanos 169 sintéticos; val 37 humanos 34 sintéticos">
+        <div class="col">
+          <div class="stack" style="height:100%">
+            <div class="h" style="height:40%;background:var(--human)"></div>
+            <div class="s" style="height:60%;background:var(--synth)"></div>
+          </div>
+          <label>Train 282</label>
+        </div>
+        <div class="col">
+          <div class="stack" style="height:25%">
+            <div class="h" style="height:52%;background:var(--human)"></div>
+            <div class="s" style="height:48%;background:var(--synth)"></div>
+          </div>
+          <label>Val 71</label>
+        </div>
+      </div>
+      <div class="legend"><span><i class="h"></i>Humano 113 / 37</span><span><i class="s"></i>Sintético 169 / 34</span></div>
+      <p class="src">Los cortes son de hablantes disjuntos. La evaluación usa un set oculto de hablantes y voces nuevos.</p>
+    </div>
+  </div>
+
+  <p class="src">Las llamadas duran 61–273 segundos, con media de unos 148 s (~2.5 minutos). En total, unas 14.5 horas de telefonía en español mexicano.</p>
+
+  <div class="two">
+    <div class="sig">
+      <span class="layer">Pista de los organizadores</span>
+      <h3>Te dan ambos canales por una razón</h3>
+      <p>La pista del llamante no es la única evidencia. Los turnos del agente te dicen a qué reaccionaba el llamante: interrupciones, silencios y prompts de guion. Por eso medimos el tiempo de la conversación, no solo la textura de la voz.</p>
+    </div>
+    <div class="sig">
+      <span class="layer">Pista de los organizadores</span>
+      <h3>La profundidad gana a la amplitud</h3>
+      <p>Medimos 68 rasgos numéricos. La mayoría no se sostuvo. Sonidos de respiración, eco de la habitación y jitter de tono quedaron cerca de cero en este audio telefónico a 8 kHz. El modelo que enviamos usa ocho rasgos en dos cabezas.</p>
+    </div>
+  </div>
+
+  <h3>Qué hay que entregar</h3>
+  <table>
+    <thead><tr><th>Campo</th><th>Significado llano</th><th>Nombre técnico</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">is_synthetic</td><td>True si creemos que el llamante es una máquina</td><td>Veredicto booleano obligatorio</td></tr>
+      <tr><td class="mono">confidence</td><td>Qué tan seguros estamos de ese sí o no</td><td>Certeza 0–1; el juez recupera P(synthetic)</td></tr>
+      <tr><td class="mono">POST /detect</td><td>La única URL que los jueces pegan durante la visita de 15 minutos</td><td>Endpoint FastAPI, modelo de tandem.json</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="pipeline">
+  <h2>Cómo funciona</h2>
+  <p class="big">Piensa el sistema como una línea de ensamble corta. Entra el audio. Se marcan los tramos de habla. Dos especialistas dan cada uno un puntaje. Un mezclador combina esos puntajes en una sola probabilidad. Si esa probabilidad es 0.5 o más, decimos que el llamante es sintético.</p>
+
+  <div class="pipeline" aria-label="Pipeline de detección">
+    <div class="node">Llamada estéreo que entra</div>
+    <div class="arrow">↓</div>
+    <div class="node">Separar canales · demux</div>
+    <div class="arrow">↓</div>
+    <div class="node">Hybrid VAD · libro de turnos</div>
+    <div class="arrow">↓</div>
+    <div class="fork">
+      <div class="node">Rasgos acústicos → cabeza</div>
+      <div class="node">Rasgos conductuales → cabeza</div>
+    </div>
+    <div class="arrow">↓</div>
+    <div class="node">Mezclador stacked fusion</div>
+    <div class="arrow">↓</div>
+    <div class="node final">is_synthetic + confidence</div>
+  </div>
+  <p class="src">Ruta en vivo: api/app.py → detect/live.py → tandem.py. El puntaje semántico está cableado en el código, pero no se fusiona hasta que existan transcripciones.</p>
+
+  <h3>Los cinco pasos, en lenguaje llano</h3>
+  <table>
+    <thead><tr><th>Paso</th><th>Qué ocurre</th><th>Dilo así a los jueces</th></tr></thead>
+    <tbody>
+      <tr><td>1. Separar</td><td>Se abre el archivo estéreo. El canal 0 es el llamante. El canal 1 es el agente.</td><td>Demux. Nunca clasificamos al agente.</td></tr>
+      <tr><td>2. Encontrar el habla</td><td>Marcamos cuándo cada lado habla, hace pausa o habla encima del otro.</td><td>Hybrid VAD → libro de turnos. VAD de energía ajustado; Silero solo si la energía no oye nada.</td></tr>
+      <tr><td>3. Medir</td><td>A partir de esos turnos calculamos qué tan irregular es la voz, y cómo espera y se recupera el llamante.</td><td>Rasgos acústicos + conductuales sobre el libro de VAD.</td></tr>
+      <tr><td>4. Dos opiniones</td><td>Un especialista de voz y uno de conversación cada uno entrega P(synthetic).</td><td>Dos cabezas de logistic regression. No es una red neuronal profunda.</td></tr>
+      <tr><td>5. Un veredicto</td><td>Un tercer modelo mezcla las dos opiniones. Dos reglas chicas de seguridad todavía pueden voltear un empate cercano.</td><td>Stacked fusion, luego el override de desacuerdo y una compuerta de hablante callado y locuaz.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Voice activity detection — encontrar los turnos</h3>
+  <p>VAD significa “voice activity detection”: un detector que responde “¿alguien está hablando ahorita?”. Los jueces mandan audio crudo, no los archivos de turnos de los organizadores. Si nuestros turnos no coinciden con la receta con la que se entrenaron los rasgos, los puntajes de después se desvían.</p>
+
+  <div class="chart">
+    <h3>IoU de intervalos global vs turnos de los organizadores (val, 71 llamadas)</h3>
+    <div class="bars">
+      <div class="bar-row"><span>Silero neural</span><div class="track"><div class="fill muted" style="width:87.6%"></div></div><span>0.876</span></div>
+      <div class="bar-row"><span>Energía 6 dB</span><div class="track"><div class="fill muted" style="width:80.7%"></div></div><span>0.807</span></div>
+      <div class="bar-row"><span>AND hybrid viejo</span><div class="track"><div class="fill muted" style="width:89.1%"></div></div><span>0.891</span></div>
+      <div class="bar-row"><span>Hybrid ajustado</span><div class="track"><div class="fill accent" style="width:97.9%"></div></div><span>0.979</span></div>
+    </div>
+    <p class="src">El IoU es calidad de traslape, no acierto humano-vs-sintético. Energía ajustada: 14 dB sobre un piso del percentil 12, 120 ms de habla mínima, 280 ms de hueco para fusionar. Latencia media ~9 ms. Fuente: VAD.md.</p>
+  </div>
+
+  <div class="rule">
+    <p><b>Por qué la energía le ganó al VAD neuronal.</b> Las etiquetas de turno de los organizadores se comportan como un detector de energía, no como Silero. El hybrid de hoy es “usa energía; llama a Silero solo si la energía no oye nada.” En val, ese respaldo nunca se disparó.</p>
+  </div>
+
+  <div class="two">
+    <div class="sig">
+      <span class="layer">Regla de seguridad</span>
+      <h3>Desacuerdo inseguro</h3>
+      <p>Si las dos cabezas votan al revés y el mezclador está cerca de un volado (a 0.10 de 0.5), confiamos en la cabeza más lejos de 0.5.</p>
+      <p class="src">resolve_disagreement, disagree_unsure = 0.10. En val esto salvó a un humano y no rompió ninguno.</p>
+    </div>
+    <div class="sig">
+      <span class="layer">Regla de seguridad</span>
+      <h3>Hablante callado y locuaz</h3>
+      <p>Un llamante educado que espera unos 1.4–2.0 segundos, mantiene un volumen limpio y aun así toma muchos turnos puede parecer un bot. Si tiene 24 o más turnos de llamante, forzamos hacia humano.</p>
+      <p class="src">resolve_talkative_quiet. La compuerta es wait + rms_cv; el experto solo se dispara para el subtipo locuaz.</p>
+    </div>
+  </div>
+</section>
+
+<section id="signals">
+  <h2>Las dos pistas</h2>
+  <p class="big">Los humanos son irregulares. Las máquinas son consistentes. Esa es toda la idea, medida de dos maneras: cómo suena la voz, y cómo se comporta el llamante cuando el agente interrumpe, se queda callado o termina un turno.</p>
+
+  <div class="two">
+    <div class="sig">
+      <span class="layer">Cabeza acústica · 5 rasgos</span>
+      <h3>La voz en sí</h3>
+      <p>Una garganta de verdad no mantiene el volumen, el brillo y el “zumbido” perfectamente quietos. Un vocoder muchas veces sí. No usamos el volumen promedio. Los sintéticos fuertes de este dump se ven como un artefacto de inyección, no como una ley de la naturaleza.</p>
+      <p class="src">Acierto Val 87.3% · AUC 0.963. Logistic regression sobre caller_rms_cv, caller_zcr_std, caller_crest_factor_cv, caller_spectral_flatness_std, caller_spectral_centroid_std.</p>
+    </div>
+    <div class="sig">
+      <span class="layer">Cabeza conductual · 3 rasgos</span>
+      <h3>La conversación</h3>
+      <p>Cuando el agente se calla, un humano típico de este set responde en unos 1.2 segundos. Un sintético típico espera unos 2.6 segundos, y lo hace de forma más uniforme. Los humanos también le dejan más tiempo al aire al agente y se recuperan con menos consistencia después de turbulencia.</p>
+      <p class="src">Acierto Val 93.0% · AUC 0.979. Rasgos: caller_response_latency_pos_median_s, agent_talk_ratio, agent_aligned_recovery_cv. Peso del mezclador 2.41 vs 1.65 — el tiempo gana los empates.</p>
+    </div>
+  </div>
+
+  <div class="two">
+    <div class="chart">
+      <h3>Espera mediana después de que el agente se calla</h3>
+      <div class="bars">
+        <div class="bar-row"><span>Humano</span><div class="track"><div class="fill human" style="width:48%"></div></div><span>1.22 s</span></div>
+        <div class="bar-row"><span>Sintético</span><div class="track"><div class="fill synth" style="width:100%"></div></div><span>2.56 s</span></div>
+      </div>
+      <p class="src">Latencia de respuesta del llamante solo positiva, medianas de clase en val. El separador conductual más fuerte (d de Cohen ≈ +1.90 en train). Fuente: reports/tune/remaining-misses.md.</p>
+    </div>
+    <div class="chart">
+      <h3>Irregularidad de volumen (rms_cv)</h3>
+      <div class="bars">
+        <div class="bar-row"><span>Humano</span><div class="track"><div class="fill human" style="width:100%"></div></div><span>0.64</span></div>
+        <div class="bar-row"><span>Sintético</span><div class="track"><div class="fill synth" style="width:39%"></div></div><span>0.25</span></div>
+      </div>
+      <p class="src">Más alto significa que el volumen brinca más. Tiramos caller_rms_mean a propósito. Fuente: remaining-misses.md.</p>
+    </div>
+  </div>
+
+  <div class="chart">
+    <h3>Qué tan fuerte es cada pista que enviamos · |d de Cohen| en train</h3>
+    <div class="bars">
+      <div class="bar-row"><span>Espera tras el agente</span><div class="track"><div class="fill accent" style="width:100%"></div></div><span>1.90</span></div>
+      <div class="bar-row"><span>Var. planitud espectral</span><div class="track"><div class="fill accent" style="width:77%"></div></div><span>1.46</span></div>
+      <div class="bar-row"><span>Variación de brillo</span><div class="track"><div class="fill accent" style="width:77%"></div></div><span>1.46</span></div>
+      <div class="bar-row"><span>Irregularidad de volumen</span><div class="track"><div class="fill accent" style="width:76%"></div></div><span>1.44</span></div>
+      <div class="bar-row"><span>Variación de zumbido</span><div class="track"><div class="fill accent" style="width:74%"></div></div><span>1.41</span></div>
+      <div class="bar-row"><span>Porción de habla del agente</span><div class="track"><div class="fill accent" style="width:69%"></div></div><span>1.32</span></div>
+      <div class="bar-row"><span>Inconsistencia de recuperación</span><div class="track"><div class="fill accent" style="width:69%"></div></div><span>1.31</span></div>
+      <div class="bar-row"><span>Irregularidad de picos</span><div class="track"><div class="fill accent" style="width:64%"></div></div><span>1.22</span></div>
+    </div>
+    <p class="src">El d de Cohen es una brecha estandarizada entre medias de grupo. Un |d| de 0.8 ya es un efecto grande; ahí va una línea mental punteada. La espera es más alta para sintéticos; el resto es más alto para humanos. Fuente: models/tandem.json.</p>
+  </div>
+
+  <h3>Traducir los nombres de los rasgos</h3>
+  <table>
+    <thead><tr><th>Nombre técnico</th><th>Significado llano</th><th>Quién sale más alto</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">caller_rms_cv</td><td>Cuánto se mueve el volumen del llamante</td><td>Humanos (más irregulares)</td></tr>
+      <tr><td class="mono">caller_zcr_std</td><td>Cuánto cambia el zumbido de la forma de onda</td><td>Humanos</td></tr>
+      <tr><td class="mono">caller_crest_factor_cv</td><td>Qué tan inconsistente es lo puntiagudo de la forma de onda</td><td>Humanos</td></tr>
+      <tr><td class="mono">caller_spectral_flatness_std</td><td>Cuánto la voz cambia entre tono y ruido</td><td>Humanos</td></tr>
+      <tr><td class="mono">caller_spectral_centroid_std</td><td>Cuánto se mueve el brillo</td><td>Humanos</td></tr>
+      <tr><td class="mono">caller_response_latency_pos_median_s</td><td>Pausa típica después de que el agente termina, ignorando interrupciones</td><td>Sintéticos (espera más larga)</td></tr>
+      <tr><td class="mono">agent_talk_ratio</td><td>Porción de la llamada en la que habla el agente del banco</td><td>Humanos (le dejan más espacio)</td></tr>
+      <tr><td class="mono">agent_aligned_recovery_cv</td><td>Qué tan inconsistente es cómo el llamante reinicia después de que el agente se calla</td><td>Humanos</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Lo que medimos y luego dejamos en el piso</h3>
+  <table>
+    <thead><tr><th>Idea</th><th>Por qué sonaba bien</th><th>Lo que dijeron los datos</th></tr></thead>
+    <tbody>
+      <tr><td>Respiración / inhalaciones</td><td>La gente inhala; los bots a veces no</td><td>d = 0.00 — las emisiones bancarias a 8 kHz lo esconden</td></tr>
+      <tr><td>Sangrado / eco de habitación</td><td>Un teléfono de verdad debería captar al agente en el cuarto</td><td>No hay corte estable entre condiciones de llamada</td></tr>
+      <tr><td>Volumen promedio (rms_mean)</td><td>Los synths de este dump suenan más fuerte</td><td>Trampa de inyección. El set oculto puede no coincidir. Lo tiramos; el acierto se sostuvo.</td></tr>
+      <tr><td>Whisper en vivo / semántica</td><td>Los bots inventan respuestas a datos falsos de cuenta</td><td>No hay transcripciones en disco. Segundos de latencia. La profundidad gana a la amplitud.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="scorecard">
+  <h2>Resultados</h2>
+
+  <div class="chart">
+    <h3>Cada especialista, luego el equipo (val)</h3>
+    <div class="bars">
+      <div class="bar-row"><span>Acierto acústico</span><div class="track"><div class="fill muted" style="width:87.3%"></div></div><span>87.3%</span></div>
+      <div class="bar-row"><span>Acierto conductual</span><div class="track"><div class="fill muted" style="width:93%"></div></div><span>93.0%</span></div>
+      <div class="bar-row"><span>Stacked fusion</span><div class="track"><div class="fill human" style="width:97.2%"></div></div><span>97.2%</span></div>
+      <div class="bar-row"><span>AUC acústico</span><div class="track"><div class="fill accent" style="width:96.3%"></div></div><span>0.963</span></div>
+      <div class="bar-row"><span>AUC conductual</span><div class="track"><div class="fill accent" style="width:97.9%"></div></div><span>0.979</span></div>
+      <div class="bar-row"><span>AUC stacked</span><div class="track"><div class="fill accent" style="width:99.7%"></div></div><span>0.997</span></div>
+    </div>
+    <p class="src">El acierto es el porcentaje correcto en la línea de 0.5. El AUC pregunta: si tomas un humano y un sintético al azar, ¿con qué frecuencia el sintético saca el puntaje más alto? 0.5 es un volado; 1.0 es un ranking perfecto. Fuente: models/tandem.json.</p>
+  </div>
+
+  <p>341 de 353 llamadas etiquetadas correctas — <b>96.6%</b> en el set completo, <b>97.2%</b> en val (69 de 71). Train es 96.5% (272 de 282). Un modelo que solo “tuvo suerte” en 71 filas de val normalmente se caería en las 282 llamadas de train. Este no.</p>
+
+  <div class="chart">
+    <h3>Tiempo medio por capa en val (milisegundos)</h3>
+    <div class="bars">
+      <div class="bar-row"><span>VAD</span><div class="track"><div class="fill accent" style="width:1.1%"></div></div><span>14.3</span></div>
+      <div class="bar-row"><span>Acústica</span><div class="track"><div class="fill accent" style="width:0.6%"></div></div><span>7.5</span></div>
+      <div class="bar-row"><span>Conductual</span><div class="track"><div class="fill accent" style="width:0.2%"></div></div><span>0.2</span></div>
+      <div class="bar-row"><span>Extras sin usar</span><div class="track"><div class="fill synth" style="width:100%"></div></div><span>1360</span></div>
+      <div class="bar-row"><span>Total en vivo</span><div class="track"><div class="fill human" style="width:1.6%"></div></div><span>21.9</span></div>
+    </div>
+    <p class="src">La ruta en vivo se salta extras de formantes / tono / interacción. Los veredictos son idénticos; el tiempo medio bajó de 1,382 ms a 22 ms (p50 20.5 ms, máx. 42 ms). Fuente: reports/latency/index.json.</p>
+  </div>
+
+  <div class="rule">
+    <p><b>Factibilidad, en una línea.</b> Sin GPU a la hora de servir. El artefacto que enviamos es un JSON chico de pesos logísticos. El tiempo mediano de puntuación es como un cincuentavo de segundo en una laptop, encima de una llamada de ~2.5 minutos.</p>
+  </div>
+
+  <div class="chart">
+    <h3>Cómo el mezclador pesa las dos cabezas</h3>
+    <div class="bars">
+      <div class="bar-row"><span>Conductual</span><div class="track"><div class="fill synth" style="width:100%"></div></div><span>2.41</span></div>
+      <div class="bar-row"><span>Acústica</span><div class="track"><div class="fill accent" style="width:68%"></div></div><span>1.65</span></div>
+    </div>
+    <p class="src">Stacked fusion fuera de fold para que el mezclador no sobreajuste los mismos logits de train que está combinando. Enviamos stacked, no concatenado, porque es la ruta en vivo honesta.</p>
+  </div>
+
+  <h3>Cómo subimos de 94% a 97%</h3>
+  <div class="chart">
+    <div class="bars">
+      <div class="bar-row"><span>Solo acústica</span><div class="track"><div class="fill muted" style="width:87.3%"></div></div><span>87.3%</span></div>
+      <div class="bar-row"><span>Solo conductual</span><div class="track"><div class="fill muted" style="width:93%"></div></div><span>93.0%</span></div>
+      <div class="bar-row"><span>Mezclador stacked</span><div class="track"><div class="fill muted" style="width:94.4%"></div></div><span>94.4%</span></div>
+      <div class="bar-row"><span>+ regla de desacuerdo</span><div class="track"><div class="fill accent" style="width:95.8%"></div></div><span>95.8%</span></div>
+      <div class="bar-row"><span>+ hablante callado y locuaz</span><div class="track"><div class="fill human" style="width:97.2%"></div></div><span>97.2%</span></div>
+    </div>
+    <p class="src">Acierto en val. El último paso salva a un humano educado y locuaz (e2d538) que el mezclador había llamado sintético. Fuente: reports/tune/all-inspect-talkative.md · disagree-override.md.</p>
+  </div>
+
+  <h3>Las dos llamadas de val que todavía fallamos</h3>
+  <table>
+    <thead><tr><th>Llamada</th><th>Verdad</th><th>Qué salió mal</th><th>P(synth) fusionada</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">6971…c1d</td><td>Humano</td><td>Las dos cabezas se equivocan — una persona cuidadosa y callada que espera como un bot</td><td>0.83</td></tr>
+      <tr><td class="mono">d4518…00a</td><td>Sintético</td><td>La acústica lo pescó (0.87); el mezclador confió en la espera de 1.74 s, como de humano</td><td>0.33</td></tr>
+    </tbody>
+  </table>
+  <p class="src">Congelamos aquí a propósito. Perseguir estas dos memorizaría humanos educados y bots rápidos que van a reaparecer, distinto, en el set oculto.</p>
+</section>
+
+<section id="brief">
+  <h2>Brief para jueces</h2>
+  <div class="rule">
+    <p>Van a pegarle a tu URL en vivo con un set de prueba oculto mientras hablas. Mantén <span class="term">POST /detect</span> arriba. Camina la historia, luego las dos pistas, luego latencia y lo que te negaste a agregar. No te disculpes por 69/71 — explica los dos fallos como modos de falla distintos.</p>
+  </div>
+
+  <h3>Mapea lo que califican a lo que construiste</h3>
+  <table>
+    <thead><tr><th>Criterio</th><th>Qué significa</th><th>Tu evidencia</th></tr></thead>
+    <tbody>
+      <tr><td>Robustez</td><td>Sigue funcionando con hablantes nuevos y motores TTS nuevos</td><td>Cortes de hablantes disjuntos. Tiramos rms_mean. Congelamos en vez de ajustar las últimas 2 filas de val.</td></tr>
+      <tr><td>Originalidad</td><td>No es solo un clasificador de audio de paquete</td><td>Ambos canales. Latencia de cesión del turno. Dos cabezas más un mezclador, no una sopa de rasgos.</td></tr>
+      <tr><td>Profundidad técnica</td><td>Sabes por qué funciona</td><td>Catálogo de 68 rasgos, IoU de VAD vs turnos de los organizadores, ablaciones, escuchamos el fallo que queda.</td></tr>
+      <tr><td>Factibilidad</td><td>Un banco podría desplegar esto en audio telefónico real</td><td>Telefonía 8 kHz, CPU, pesos JSON, FastAPI. Sin GPU, sin transcripción al servir.</td></tr>
+      <tr><td>Latencia</td><td>Un veredicto seguro, rápido</td><td>22 ms de media después de tirar extras sin usar. Los mismos veredictos que la ruta de 1.4 s.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Un guion que sí puedes decir</h3>
+  <div class="script">
+    <p>“Solo clasificamos al llamante que entra. El canal del agente es contexto. Primero corremos un hybrid VAD para saber quién habló cuándo — VAD de energía ajustado, 98% de traslape con los turnos de los organizadores, unos 9 milisegundos.”</p>
+    <p>“Luego dos cabezas logísticas chicas. Acústica: los humanos son más irregulares en volumen, brillo y zumbido. A propósito no usamos el volumen promedio, porque los sintéticos de este dump suenan más fuerte a un nivel digital fijo — eso puede no sobrevivir el set oculto.”</p>
+    <p>“Conductual: después de que el agente cede el turno, los humanos vuelven en unos 1.2 segundos, los sintéticos en unos 2.6. El mezclador aprendió a confiar más en el tiempo que en la textura. Si las cabezas no coinciden y el mezclador está inseguro, nos quedamos con la cabeza más marcada.”</p>
+    <p>“Val es 69 de 71 — 97.2%. AUC 0.997. Set etiquetado completo 96.6%. La puntuación en vivo son 22 milisegundos. Lo semántico está construido pero no fusionado — no hay transcripciones, y la profundidad gana a la amplitud.”</p>
+  </div>
+</section>
+
+<section id="glossary">
+  <h2>Palabras que te pueden hacer falta</h2>
+
+  <details open>
+    <summary>Audio y telefonía</summary>
+    <ul>
+      <li><b>Estéreo</b> — dos pistas en un archivo. Canal 0 llamante, canal 1 agente.</li>
+      <li><b>8 kHz / PCM</b> — calidad de línea telefónica, no de estudio. Las claves finas de respiración y formantes se mueren aquí.</li>
+      <li><b>Base64</b> — el WAV se codifica como texto para viajar en un cuerpo HTTP JSON.</li>
+      <li><b>Demux</b> — separar esas dos pistas.</li>
+      <li><b>TTS / vocoder</b> — text-to-speech; la máquina que “canta” al llamante sintético.</li>
+      <li><b>Pila ASR + LLM + TTS</b> — oye al agente, piensa una respuesta, la habla. No es una grabación reproducida.</li>
+    </ul>
+  </details>
+  <details>
+    <summary>Detección y aprendizaje de máquina</summary>
+    <ul>
+      <li><b>VAD</b> — voice activity detection; marca habla vs silencio.</li>
+      <li><b>Libro de turnos</b> — la línea de tiempo de quién habló cuándo, incluido el traslape.</li>
+      <li><b>Feature</b> — un solo número que calculamos de la llamada (tiempo de espera, variación de volumen, …).</li>
+      <li><b>Logistic regression</b> — un modelo simple y legible: suma ponderada de rasgos, luego una probabilidad 0–1. Sin red profunda en producción.</li>
+      <li><b>Cabeza (head)</b> — uno de esos modelos, especializado (acústico o conductual).</li>
+      <li><b>Stacked fusion</b> — un tercer modelo logístico que toma como entradas las dos probabilidades de las cabezas.</li>
+      <li><b>P(synthetic)</b> — nuestra probabilidad estimada de que el llamante es una máquina. El veredicto es sí a 0.5 o más.</li>
+      <li><b>Confidence</b> — qué tan seguros estamos de la etiqueta sí/no, no la probabilidad cruda. Si decimos humano con P=0.2, confidence es 0.8.</li>
+    </ul>
+  </details>
+  <details>
+    <summary>Cómo funcionan las cifras de evaluación</summary>
+    <ul>
+      <li><b>Accuracy</b> — fracción de llamadas que acertamos.</li>
+      <li><b>TPR / TNR</b> — con qué frecuencia cazamos sintéticos, y con qué frecuencia limpiamos humanos correctamente.</li>
+      <li><b>AUC</b> — calidad de ranking. 1.0 significa que cada sintético quedó arriba de cada humano.</li>
+      <li><b>Brier score</b> — qué tan honestas son las probabilidades, no solo el sí/no. El juez puede calcularlo a partir de confidence.</li>
+      <li><b>d de Cohen</b> — qué tan separados están los dos grupos, en desviaciones estándar. |d| &gt; 0.8 es grande.</li>
+    </ul>
+  </details>
+  <details>
+    <summary>Por qué congelamos</summary>
+    <ul>
+      <li><b>Hablantes disjuntos</b> — train, val y el set oculto no comparten llamantes. Memorizar a un humano educado no se transfiere.</li>
+      <li><b>Overfit</b> — un modelo que persigue los últimos dos errores de val normalmente empeora con voces nuevas.</li>
+      <li><b>Artefacto de inyección</b> — un patrón que es cierto en este zip (synths más fuertes) pero puede ser un efecto secundario de cómo se generaron.</li>
+      <li><b>IoU</b> — intersection-over-union. Qué tan bien nuestros segmentos de habla cubren los de los organizadores. Un IoU alto mantiene alineados los rasgos de train y de servir.</li>
+    </ul>
+  </details>
+</section>
+
+<footer>
+  Solo cifras del set etiquetado. El audio oculto de evaluación no se ha visto. Abre este archivo, mándalo por AirDrop o imprímelo a PDF.
+</footer>
+
+</div>
+</body>
+</html>

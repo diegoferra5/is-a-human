@@ -10,6 +10,7 @@ from is_a_human.analysis.features import CallFeatures, numeric_feature_vector
 
 
 def _sigmoid(values: np.ndarray) -> np.ndarray:
+    # Clip logits so exp() stays finite during long gradient-descent runs.
     clipped = np.clip(values, -500, 500)
     return 1.0 / (1.0 + np.exp(-clipped))
 
@@ -115,7 +116,7 @@ def train_logistic_regression(
     )
     mean = matrix.mean(axis=0)
     std = matrix.std(axis=0)
-    std[std == 0] = 1.0
+    std[std == 0] = 1.0  # constant features: skip division, keep mean/std for inference
     matrix = (matrix - mean) / std
 
     labels = _binary_labels(train_rows)

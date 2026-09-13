@@ -40,6 +40,7 @@ def detect_from_audio(
     transcript_turns: list[dict] | None = None,
     vad_backend: str | None = None,
 ) -> tuple[float, dict[str, float], dict[str, float | None]]:
+    """Score one call: VAD ledger → features → tandem heads → P(synthetic)."""
     features, timings = extract_call_features_timed(
         anon_id=call_id,
         label="unknown",

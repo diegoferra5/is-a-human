@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>is-a-human · presentación de resultados</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+  :root{
+    --ground:#F7F8FA;--surface:#FFFFFF;--ink:#111720;--ink-soft:#38424F;
+    --muted:#6B7686;--line:#DFE3EA;--accent:#0E6E6E;--accent-soft:#E4F0EF;
+    --human:#1B6E4B;--synth:#B3352C;--amber:#8A5A12;--amber-soft:#FBF2E2;
+    --serif:"Source Serif 4", Georgia, serif;
+    --sans:"Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+    --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--ground);color:var(--ink);font-family:var(--serif);margin:0;-webkit-font-smoothing:antialiased;overflow:hidden}
+  .bar{position:fixed;top:0;left:0;height:2px;background:var(--accent);z-index:5}
+  .stage{position:relative;width:100vw;height:100vh;min-height:560px}
+  .slide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:clamp(36px,5vw,80px) clamp(24px,6vw,96px) 80px;opacity:0;pointer-events:none}
+  .slide.on{opacity:1;pointer-events:auto}
+  .inner{max-width:1080px;width:100%;margin:0 auto}
+  .kicker{font-family:var(--mono);font-size:clamp(10px,1.1vw,12px);letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin:0 0 16px}
+  h1{font-family:var(--sans);font-weight:800;font-size:clamp(40px,8vw,88px);line-height:1;letter-spacing:-.03em;margin:0 0 20px;text-wrap:balance}
+  h2{font-family:var(--sans);font-weight:600;font-size:clamp(28px,4.6vw,52px);line-height:1.08;letter-spacing:-.025em;margin:0 0 18px;text-wrap:balance;max-width:22ch}
+  h2.wide{max-width:28ch}
+  .lede{font-size:clamp(16px,2vw,23px);line-height:1.5;color:var(--ink-soft);margin:0 0 14px;max-width:52ch}
+  .lede b{color:var(--ink)}
+  .meta{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:28px;padding-top:16px;border-top:1px solid var(--line)}
+  .cols{display:grid;gap:14px;margin-top:18px}
+  @media(min-width:820px){.c2{grid-template-columns:1fr 1fr}.c3{grid-template-columns:repeat(3,1fr)}.c4{grid-template-columns:repeat(4,1fr)}}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:18px 20px}
+  .card h3{font-family:var(--sans);font-weight:600;font-size:clamp(18px,2vw,24px);letter-spacing:-.016em;margin:0 0 8px}
+  .card p{margin:0;font-size:clamp(14px,1.5vw,17px);line-height:1.45;color:var(--ink-soft)}
+  .chip{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:3px 8px;border-radius:3px;display:inline-block;margin-bottom:8px}
+  .stat .v{font-family:var(--sans);font-weight:800;font-size:clamp(28px,4vw,42px);letter-spacing:-.03em;line-height:1;margin:0 0 6px}
+  .stat .k{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .ok .v{color:var(--human)} .bad .v{color:var(--synth)}
+  .bars{display:flex;flex-direction:column;gap:9px}
+  .br{display:grid;grid-template-columns:minmax(110px,34%) 1fr 58px;gap:10px;align-items:center}
+  .br span:first-child{font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
+  .br span:last-child{font-family:var(--mono);font-size:12px;text-align:right;font-variant-numeric:tabular-nums}
+  .track{height:10px;background:#ECEEF2;border-radius:99px;overflow:hidden}
+  .f{height:100%;border-radius:99px}
+  .f.h{background:var(--human)} .f.s{background:var(--synth)} .f.a{background:var(--accent)} .f.m{background:#9AA3B0}
+  .src{font-family:var(--mono);font-size:11px;color:var(--muted);margin:10px 0 0}
+  .callout{background:var(--accent-soft);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;padding:16px 20px;margin-top:18px}
+  .callout p{margin:0;font-size:clamp(15px,1.6vw,19px);line-height:1.45}
+  .callout.warn{background:var(--amber-soft);border-left-color:#C9922F}
+  .callout.warn p{color:var(--amber)}
+  .pipe{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:16px}
+  .node{font-family:var(--sans);font-weight:600;font-size:14px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 12px}
+  .node.fin{border-color:var(--accent);color:var(--accent)}
+  .arr{color:var(--muted)}
+  table{width:100%;border-collapse:collapse;font-size:14px;margin-top:10px}
+  th,td{text-align:left;padding:7px 8px 7px 0;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500}
+  .mono{font-family:var(--mono);font-size:12px}
+  .chrome{position:fixed;left:0;right:0;bottom:0;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--ground);pointer-events:none}
+  .nav{display:flex;align-items:center;gap:12px;pointer-events:auto}
+  .nav button{font:inherit;letter-spacing:inherit;text-transform:inherit;background:var(--surface);border:1px solid var(--line);color:var(--ink-soft);border-radius:4px;padding:6px 12px;cursor:pointer}
+  .nav button:disabled{opacity:.4;cursor:default}
+  .count{font-variant-numeric:tabular-nums;color:var(--ink);min-width:64px;text-align:center}
+  @media print{body{overflow:visible}.slide{position:relative;opacity:1;page-break-after:always;height:100vh}.chrome,.bar{display:none}}
+</style>
+</head>
+<body>
+<div class="bar" id="bar"></div>
+<div class="stage">
+
+<section class="slide on">
+  <div class="inner">
+    <p class="kicker">is-a-human · resultados del set etiquetado</p>
+    <h1>97.2%</h1>
+    <p class="lede">Acierto en val. <b>69 de 71</b> llamadas. Dos especialistas — cómo suena la voz y cómo espera el llamante — luego un mezclador. Tiempo de puntuación en vivo: 22 milisegundos.</p>
+    <p class="meta">Español · <a href="results-deck.html" style="color:inherit">EN</a> · no es el set oculto · hablantes disjuntos · telefonía en español mexicano</p>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <p class="kicker">La pregunta</p>
+    <h2 class="wide">¿La persona que llama es humana, o una máquina?</h2>
+    <p class="lede">No es un clip reproducido. Una pila en vivo: reconocimiento de voz, un modelo de lenguaje y una voz sintética, marcando al agente de IA de un banco.</p>
+    <div class="cols c3">
+      <div class="card stat ok"><p class="v">150</p><p class="k">Llamantes humanos</p></div>
+      <div class="card stat bad"><p class="v">203</p><p class="k">Llamantes sintéticos</p></div>
+      <div class="card stat"><p class="v">8 kHz</p><p class="k">Estéreo · ch0 llamante · ch1 agente</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <p class="kicker">Conjunto de datos</p>
+    <h2>Hablantes disjuntos a propósito.</h2>
+    <div class="cols c2">
+      <div class="card">
+        <p class="chip">Train 282</p>
+        <div class="bars">
+          <div class="br"><span>Humano 113</span><div class="track"><div class="f h" style="width:40%"></div></div><span>40%</span></div>
+          <div class="br"><span>Sintético 169</span><div class="track"><div class="f s" style="width:60%"></div></div><span>60%</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <p class="chip">Val 71</p>
+        <div class="bars">
+          <div class="br"><span>Humano 37</span><div class="track"><div class="f h" style="width:52%"></div></div><span>52%</span></div>
+          <div class="br"><span>Sintético 34</span><div class="track"><div class="f s" style="width:48%"></div></div><span>48%</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="callout warn"><p>Ningún llamante de train aparece en val. La evaluación usa un tercer set oculto de hablantes y voces.</p></div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <p class="kicker">Ambos canales</p>
+    <h2>La pista del agente no es adorno.</h2>
+    <svg viewBox="0 0 640 150" width="100%" height="150" role="img">
+      <text x="0" y="16" fill="#6B7686" font-size="13" font-family="IBM Plex Mono, monospace">Canal 0 · llamante — clasificar esto</text>
+      <rect x="0" y="24" width="640" height="36" fill="#ECEEF2" rx="4"/>
+      <rect x="40" y="30" width="70" height="24" fill="#0E6E6E" rx="3"/>
+      <rect x="180" y="30" width="110" height="24" fill="#0E6E6E" rx="3"/>
+      <rect x="360" y="30" width="50" height="24" fill="#0E6E6E" rx="3"/>
+      <rect x="500" y="30" width="90" height="24" fill="#0E6E6E" rx="3"/>
+      <text x="0" y="86" fill="#6B7686" font-size="13" font-family="IBM Plex Mono, monospace">Canal 1 · agente — a qué reacciona el llamante</text>
+      <rect x="0" y="94" width="640" height="36" fill="#ECEEF2" rx="4"/>
+      <rect x="0" y="100" width="130" height="24" fill="#9AA3B0" rx="3"/>
+      <rect x="300" y="100" width="150" height="24" fill="#9AA3B0" rx="3"/>
+      <rect x="470" y="100" width="40" height="24" fill="#9AA3B0" rx="3"/>
+    </svg>
+    <p class="lede">La latencia de cesión del turno es esa pista, medida: ¿cuánto tarda el llamante en empezar después de que el agente se calla?</p>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <p class="kicker">Pipeline</p>
+    <h2>Cinco pasos. Sin GPU.</h2>
+    <div class="pipe">
+      <div class="node">WAV estéreo</div><span class="arr">→</span>
+      <div class="node">Demux</div><span class="arr">→</span>
+      <div class="node">Hybrid VAD</div><span class="arr">→</span>
+      <div class="node">Cabeza acústica</div>
+      <div class="node">Cabeza conductual</div><span class="arr">→</span>
+      <div class="node">Stacked fusion</div><span class="arr">→</span>
+      <div class="node fin">Veredicto</div>
+    </div>
+    <div class="cols c2" style="margin-top:22px">
+      <div class="card"><h3>Logistic regression</h3><p>Una suma ponderada de unos cuantos números, luego una probabilidad 0–1. Legible. Desplegable. El artefacto es tandem.json.</p></div>
+      <div class="card"><h3>Lo semántico está cableado, no fusionado</h3><p>No hay transcripciones en disco. Segundos de latencia. La profundidad gana a la amplitud — no lo enviamos.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <p class="kicker">VAD · voice activity detection</p>
+    <h2>La energía le ganó al detector neuronal.</h2>
+    <div class="bars">
+      <div class="br"><span>Silero neural</span><div class="track"><div class="f m" style="width:87.6%"></div></div><span>0.876</span></div>
+      <div class="br"><span>Energía 6 dB</span><div class="track"><div class="f m" style="width:80.7%"></div></div><span>0.807</span></div>
+      <div class="br"><span>AND hybrid viejo</span><div class="track"><div class="f m" style="width:89.1%"></div></div><span>0.891</span></div>
+      <div class="br"><span>Hybrid ajustado</span><div class="track"><div class="f a" style="width:97.9%"></div></div><span>0.979</span></div>
+    </div>
+    <p class="src">IoU de intervalos global vs turnos de los organizadores · val 71 · ~9 ms. Fuente: VAD.md</p>
+    <div class="callout"><p>Las etiquetas de los organizadores se comportan como un VAD de energía. El hybrid de hoy: usa energía ajustada; llama a Silero solo si la energía no oye nada.</p></div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <p class="kicker">Ajuste de VAD</p>
+    <h2>Una meseta, no una aguja.</h2>
+    <div class="cols c2">
+      <div class="card">
+        <p class="chip">IoU global en train</p>
+        <div class="bars">
+          <div class="br"><span>6 dB</span><div class="track"><div class="f m" style="width:80%"></div></div><span>0.80</span></div>
+          <div class="br"><span>10 dB</span><div class="track"><div class="f a" style="width:93%"></div></div><span>0.93</span></div>
+          <div class="br"><span>14 dB</span><div class="track"><div class="f h" style="width:95%"></div></div><span>0.95</span></div>
+          <div class="br"><span>16 dB</span><div class="track"><div class="f a" style="width:94%"></div></div><span>0.94</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Ajustes en producción</h3>
+        <p>14 dB sobre un piso del percentil 12. Tirar habla más corta que 120 ms. Fusionar huecos más cortos que 280 ms. IoU del llamante en val 0.972 · agente 0.987.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <p class="kicker">Las dos pistas</p>
+    <h2>Los humanos son irregulares. Las máquinas esperan.</h2>
+    <div class="cols c2">
+      <div class="card">
+        <p class="chip">Acústica · 5 rasgos · 87.3%</p>
+        <h3>Textura de la voz</h3>
+        <p>El volumen, el brillo y el zumbido se mueven en una garganta de verdad. Un vocoder los deja quietos. <b>No</b> usamos el volumen promedio.</p>
+      </div>
+      <div class="card">
+        <p class="chip">Conductual · 3 rasgos · 93.0%</p>
+        <h3>Espera de cesión del turno</h3>
+        <p>Después de que el agente se calla: humanos 1.22 s, sintéticos 2.56 s. El tiempo gana los empates (peso del mezclador 2.41 vs 1.65).</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <p class="kicker">Señal conductual</p>
+    <h2>Espera mediana después de que el agente se calla.</h2>
+    <div class="bars">
+      <div class="br"><span>Humano</span><div class="track"><div class="f h" style="width:48%"></div></div><span>1.22 s</span></div>
+      <div class="br"><span>Sintético</span><div class="track"><div class="f s" style="width:100%"></div></div><span>2.56 s</span></div>
+    </div>
+    <p class="src">Latencia de respuesta del llamante solo positiva · medianas de val · d de Cohen ≈ +1.90 en train</p>
+    <p class="lede">Un robot es oír → pensar → hablar. No puede empezar hasta que detecta que el agente terminó. Una persona predice el final de la frase.</p>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <p class="kicker">Señal acústica</p>
+    <h2>Irregularidad, no volumen.</h2>
+    <div class="cols c2">
+      <div class="card">
+        <p class="chip">Quedar · rms_cv</p>
+        <div class="bars">
+          <div class="br"><span>Humano</span><div class="track"><div class="f h" style="width:100%"></div></div><span>0.64</span></div>
+          <div class="br"><span>Sintético</span><div class="track"><div class="f s" style="width:39%"></div></div><span>0.25</span></div>
+        </div>
+        <p class="src">Cuánto se mueve el volumen durante la llamada</p>
+      </div>
+      <div class="card">
+        <p class="chip">Tirar · rms_mean</p>
+        <div class="bars">
+          <div class="br"><span>Humano</span><div class="track"><div class="f h" style="width:43%"></div></div><span>0.07</span></div>
+          <div class="br"><span>Sintético</span><div class="track"><div class="f s" style="width:100%"></div></div><span>0.15</span></div>
+        </div>
+        <p class="src">Los synths de este zip suenan más fuerte. Trampa de inyección. El set oculto puede no coincidir.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <p class="kicker">Catálogo de rasgos · 68 medidos</p>
+    <h2>La profundidad gana a la amplitud.</h2>
+    <div class="bars">
+      <div class="br"><span>Espera tras el agente</span><div class="track"><div class="f a" style="width:100%"></div></div><span>1.90</span></div>
+      <div class="br"><span>Var. planitud espectral</span><div class="track"><div class="f a" style="width:77%"></div></div><span>1.46</span></div>
+      <div class="br"><span>Irregularidad de volumen</span><div class="track"><div class="f a" style="width:76%"></div></div><span>1.44</span></div>
+      <div class="br"><span>Porción de habla del agente</span><div class="track"><div class="f a" style="width:69%"></div></div><span>1.32</span></div>
+      <div class="br"><span>Respiración / inhalar</span><div class="track"><div class="f m" style="width:2%"></div></div><span>0.00</span></div>
+      <div class="br"><span>Sangrado de habitación</span><div class="track"><div class="f m" style="width:8%"></div></div><span>0.12</span></div>
+    </div>
+    <p class="src">|d de Cohen| en train · 0.8 ya es un efecto grande · enviamos ocho rasgos</p>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <p class="kicker">Escalera de acierto en val</p>
+    <h2>Cada regla se ganó su lugar.</h2>
+    <div class="bars">
+      <div class="br"><span>Solo acústica</span><div class="track"><div class="f m" style="width:87.3%"></div></div><span>87.3%</span></div>
+      <div class="br"><span>Solo conductual</span><div class="track"><div class="f m" style="width:93%"></div></div><span>93.0%</span></div>
+      <div class="br"><span>Mezclador stacked</span><div class="track"><div class="f m" style="width:94.4%"></div></div><span>94.4%</span></div>
+      <div class="br"><span>+ desacuerdo</span><div class="track"><div class="f a" style="width:95.8%"></div></div><span>95.8%</span></div>
+      <div class="br"><span>+ hablante callado y locuaz</span><div class="track"><div class="f h" style="width:97.2%"></div></div><span>97.2%</span></div>
+    </div>
+    <p class="src">69 / 71 · balanceado 97.2% · TPR 97.1% · TNR 97.3% · AUC 0.997</p>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <p class="kicker">Ablaciones</p>
+    <h2>Por qué tiramos el volumen promedio.</h2>
+    <table>
+      <thead><tr><th>Armado</th><th>Acierto stacked</th><th>Acústica</th><th>Conductual</th></tr></thead>
+      <tbody>
+        <tr><td>Hybrid, sin rms_mean <span class="mono">(en producción)</span></td><td><b>94.4% → 97.2%</b></td><td>87.3%</td><td>93.0%</td></tr>
+        <tr><td>Hybrid, con rms_mean</td><td>94.4%</td><td>90.1%</td><td>93.0%</td></tr>
+        <tr><td>Silero, sin rms_mean</td><td>94.4%</td><td>76.1%</td><td>93.0%</td></tr>
+        <tr><td>Silero, con rms_mean</td><td>95.8%</td><td>87.3%</td><td>93.0%</td></tr>
+      </tbody>
+    </table>
+    <p class="src">Acierto stacked antes de las compuertas. rms_mean sube la cabeza acústica en este dump y no sube el mezclador hybrid en vivo. Fuente: reports/tune/before-after.md</p>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <p class="kicker">Fusión</p>
+    <h2>El mezclador confía más en el tiempo.</h2>
+    <div class="cols c2">
+      <div class="card">
+        <p class="chip">Pesos aprendidos</p>
+        <div class="bars">
+          <div class="br"><span>Conductual</span><div class="track"><div class="f s" style="width:100%"></div></div><span>2.41</span></div>
+          <div class="br"><span>Acústica</span><div class="track"><div class="f a" style="width:68%"></div></div><span>1.65</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Desacuerdo inseguro</h3>
+        <p>Si las cabezas votan al revés y el mezclador está a 0.10 de 0.5, nos quedamos con la cabeza más marcada. Salvó 1, rompió 0. Max-margin ingenuo en los 10 desacuerdos: salva 2 / rompe 2.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <p class="kicker">Compuerta hablante callado y locuaz</p>
+    <h2 class="wide">El último punto vino de un humano educado.</h2>
+    <p class="lede">Espera 1.4–2.0 s, volumen limpio (rms_cv &lt; 0.45) y <b>24 o más</b> turnos de llamante → forzar hacia humano. Eso es e2d538. La compuerta no mira la clase; el experto solo se dispara para el subtipo locuaz.</p>
+    <div class="cols c3">
+      <div class="card stat"><p class="v">95.8%</p><p class="k">Antes de la compuerta</p></div>
+      <div class="card stat ok"><p class="v">97.2%</p><p class="k">Después · 69 / 71</p></div>
+      <div class="card stat"><p class="v">1</p><p class="k">Llamada val volteada · 0 rotas</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <p class="kicker">Fallos de val que quedan</p>
+    <h2>Dos fallas distintas. Congelamos.</h2>
+    <table>
+      <thead><tr><th>Llamada</th><th>Verdad</th><th>Tipo</th><th>Fusionado</th><th>Acústica</th><th>Conductual</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">6971</td><td>Humano</td><td>Las dos cabezas mal</td><td>0.83</td><td>0.86</td><td>0.58</td></tr>
+        <tr><td class="mono">d4518</td><td>Sintético</td><td>El mezclador siguió el tiempo</td><td>0.33</td><td>0.87 bien</td><td>0.21</td></tr>
+      </tbody>
+    </table>
+    <div class="callout warn"><p>Perseguir ambos memoriza a un humano educado y callado y a un bot rápido. Van a reaparecer, distinto, en el set oculto.</p></div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <p class="kicker">Robustez</p>
+    <h2>Val no es un 71 de suerte.</h2>
+    <div class="bars">
+      <div class="br"><span>Val</span><div class="track"><div class="f h" style="width:97.2%"></div></div><span>97.2%</span></div>
+      <div class="br"><span>Train</span><div class="track"><div class="f a" style="width:96.5%"></div></div><span>96.5%</span></div>
+      <div class="br"><span>Todas 353</span><div class="track"><div class="f a" style="width:96.6%"></div></div><span>96.6%</span></div>
+      <div class="br"><span>TPR sintético</span><div class="track"><div class="f s" style="width:98%"></div></div><span>98.0%</span></div>
+      <div class="br"><span>TNR humano</span><div class="track"><div class="f h" style="width:94.7%"></div></div><span>94.7%</span></div>
+    </div>
+    <p class="src">Set etiquetado completo: 12 fallos (5 las dos mal, 7 mezclador mal) · 60 desacuerdos de cabezas, el mezclador igual acierta 53</p>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <p class="kicker">Latencia</p>
+    <h2>1.4 segundos → 22 milisegundos.</h2>
+    <div class="bars">
+      <div class="br"><span>Extras sin usar</span><div class="track"><div class="f s" style="width:100%"></div></div><span>1360 ms</span></div>
+      <div class="br"><span>VAD</span><div class="track"><div class="f a" style="width:1.1%"></div></div><span>14 ms</span></div>
+      <div class="br"><span>Acústica</span><div class="track"><div class="f a" style="width:0.6%"></div></div><span>7.5 ms</span></div>
+      <div class="br"><span>Conductual</span><div class="track"><div class="f a" style="width:0.2%"></div></div><span>0.2 ms</span></div>
+      <div class="br"><span>Total en vivo</span><div class="track"><div class="f h" style="width:1.6%"></div></div><span>22 ms</span></div>
+    </div>
+    <p class="src">Mismos veredictos · p50 20.5 ms · máx. 42 ms · sin GPU · reports/latency/index.json</p>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <p class="kicker">Lo que nos negamos</p>
+    <h2>Las ideas que no usamos también son un resultado.</h2>
+    <div class="cols c2">
+      <div class="card"><h3>Respiración, sangrado, jitter</h3><p>d ≈ 0 en audio bancario a 8 kHz. El eco de habitación no sobrevive las condiciones de llamada.</p></div>
+      <div class="card"><h3>Formantes</h3><p>Rankean alto en val, apuntan al revés. LPC a 8 kHz es un artefacto.</p></div>
+      <div class="card"><h3>Whisper en vivo</h3><p>Sin transcripciones. Las preguntas trampa son sobre todo el guion del agente. Segundos de latencia.</p></div>
+      <div class="card"><h3>Sopa concatenada</h3><p>Se ve un poco más alto en algunos previews. Esperas colineales + rms_mean. Enviamos la ruta stacked honesta.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <p class="kicker">Lo que califican</p>
+    <h2>Cinco criterios. Un sistema.</h2>
+    <table>
+      <thead><tr><th>Criterio</th><th>Evidencia</th></tr></thead>
+      <tbody>
+        <tr><td>Robustez</td><td>Hablantes disjuntos. Tiramos rms_mean. Congelamos en 2 fallos de val.</td></tr>
+        <tr><td>Originalidad</td><td>Ambos canales. Latencia de cesión del turno. Dos cabezas + mezclador, no un clasificador.</td></tr>
+        <tr><td>Profundidad técnica</td><td>Catálogo de 68 rasgos, IoU de VAD, ablaciones, escuchamos 6971.</td></tr>
+        <tr><td>Factibilidad</td><td>8 kHz, CPU, pesos JSON, FastAPI.</td></tr>
+        <tr><td>Latencia</td><td>22 ms de media después de tirar extras sin usar.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <p class="kicker">Dilo así</p>
+    <h2 class="wide">Clasificamos al llamante. El agente es contexto.</h2>
+    <p class="lede">Hybrid VAD, 98% de traslape con los turnos de los organizadores, 9 milisegundos. Dos cabezas logísticas: voces irregulares, esperas largas. El mezclador confía en el tiempo. Val <b>97.2%</b>, set completo <b>96.6%</b>, en vivo <b>22 ms</b>.</p>
+    <p class="meta"><a href="guia-jueces.html" style="color:inherit">Guía</a> · <a href="graficas.html" style="color:inherit">Gráficas</a> · <a href="results-deck.html" style="color:inherit">EN</a> · POST /detect</p>
+  </div>
+</section>
+
+</div>
+
+<div class="chrome">
+  <span>is-a-human · resultados</span>
+  <span class="nav">
+    <button id="prev" type="button">Anterior</button>
+    <span class="count" id="count">1 / 20</span>
+    <button id="next" type="button">Siguiente</button>
+  </span>
+</div>
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total = slides.length, i = 0;
+  var count = document.getElementById('count');
+  var bar = document.getElementById('bar');
+  var prev = document.getElementById('prev');
+  var next = document.getElementById('next');
+  function show(n){
+    i = Math.max(0, Math.min(total - 1, n));
+    slides.forEach(function(s, k){ s.classList.toggle('on', k === i); });
+    count.textContent = (i + 1) + ' / ' + total;
+    bar.style.width = (((i + 1) / total) * 100) + '%';
+    prev.disabled = i === 0;
+    next.disabled = i === total - 1;
+    try { history.replaceState(null, '', '#' + (i + 1)); } catch (e) {}
+  }
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(i + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); show(0); }
+    else if (e.key === 'End') { e.preventDefault(); show(total - 1); }
+  });
+  prev.addEventListener('click', function(){ show(i - 1); });
+  next.addEventListener('click', function(){ show(i + 1); });
+  var start = parseInt((location.hash || '').replace('#',''), 10);
+  show(isNaN(start) ? 0 : start - 1);
+})();
+</script>
+</body>
+</html>

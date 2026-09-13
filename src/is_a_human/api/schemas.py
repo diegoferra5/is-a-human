@@ -1,3 +1,5 @@
+"""Request/response models for POST /detect (Altur judge contract)."""
+
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 
@@ -17,6 +19,8 @@ class DetectRequest(BaseModel):
 
 
 class DetectResponse(BaseModel):
+    """Judge-visible verdict. `views` holds per-head P(synthetic) for debugging only."""
+
     is_synthetic: bool
     confidence: float = Field(..., ge=0.0, le=1.0)
     views: dict[str, float] | None = None

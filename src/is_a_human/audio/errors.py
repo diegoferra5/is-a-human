@@ -1,3 +1,6 @@
+"""Typed validation errors for /detect audio payloads (mapped to HTTP 400)."""
+
+
 class AudioValidationError(ValueError):
     """Base error for invalid telephony audio input."""
 

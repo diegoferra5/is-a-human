@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>is-a-human — deep judge guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+  :root{
+    --ground:#F7F8FA;--surface:#FFFFFF;--ink:#111720;--ink-soft:#38424F;
+    --muted:#6B7686;--line:#DFE3EA;--accent:#0E6E6E;--accent-soft:#E4F0EF;
+    --human:#1B6E4B;--synth:#B3352C;--amber:#8A5A12;--amber-soft:#FBF2E2;
+    --serif:"Source Serif 4", Georgia, serif;
+    --sans:"Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+    --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--ground);color:var(--ink);font-family:var(--serif);font-size:16px;line-height:1.58;margin:0;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:740px;margin:0 auto;padding:40px 28px 80px}
+  .lang{font-family:var(--mono);font-size:12px;color:var(--muted);margin:0 0 18px}
+  .lang a{color:var(--accent)}
+  h1{font-family:var(--sans);font-weight:800;font-size:clamp(32px,5vw,46px);line-height:1.05;letter-spacing:-.025em;margin:0 0 12px;text-wrap:balance}
+  .thesis{font-size:18.5px;color:var(--ink-soft);margin:0 0 8px}
+  .meta{font-family:var(--mono);font-size:11.5px;color:var(--muted);letter-spacing:.04em}
+  nav{margin:28px 0 8px;padding:16px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  nav p{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+  nav ol{margin:0;padding-left:18px}
+  nav li{margin:3px 0}
+  nav a{color:var(--accent);text-decoration:none}
+  section{margin:40px 0}
+  h2{font-family:var(--sans);font-weight:600;font-size:14px;color:var(--accent);margin:0 0 12px;display:flex;align-items:center;gap:10px}
+  h2::after{content:"";flex:1;height:1px;background:var(--line)}
+  h3{font-family:var(--sans);font-weight:600;font-size:21px;letter-spacing:-.015em;margin:22px 0 8px}
+  p{margin:0 0 12px}
+  p:last-child{margin-bottom:0}
+  .big{font-size:17.5px;color:var(--ink-soft)}
+  .term-box,.why{
+    background:var(--surface);border:1px solid var(--line);border-radius:6px;
+    padding:14px 16px;margin:14px 0;
+    break-inside:avoid;page-break-inside:avoid;
+  }
+  .term-box .name{
+    font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--accent);margin:0 0 6px;
+  }
+  .why{border-left:3px solid var(--accent);border-radius:0 6px 6px 0;background:var(--accent-soft)}
+  .why .name{color:var(--accent)}
+  .warn{background:var(--amber-soft);border-left-color:#C9922F}
+  .warn .name{color:var(--amber)}
+  ul,ol{margin:0 0 12px;padding-left:20px}
+  li{margin:4px 0}
+  table{width:100%;border-collapse:collapse;font-size:14px;margin:12px 0}
+  th,td{text-align:left;padding:7px 8px 7px 0;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500}
+  .mono{font-family:var(--mono);font-size:12.5px}
+  code,.term{font-family:var(--mono);font-size:0.92em}
+  .src{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:8px}
+  .chart{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px 16px 12px;margin:14px 0;break-inside:avoid}
+  .bars{display:flex;flex-direction:column;gap:8px}
+  .br{display:grid;grid-template-columns:140px 1fr 48px;gap:8px;align-items:center}
+  .br span:first-child{font-family:var(--mono);font-size:11.5px;color:var(--ink-soft)}
+  .br span:last-child{font-family:var(--mono);font-size:12px;text-align:right;font-variant-numeric:tabular-nums}
+  .track{height:9px;background:#ECEEF2;border-radius:99px;overflow:hidden}
+  .f{height:100%;border-radius:99px}
+  .f.h{background:var(--human)} .f.s{background:var(--synth)} .f.a{background:var(--accent)} .f.m{background:#9AA3B0}
+  dl{margin:0}
+  dt{font-family:var(--sans);font-weight:600;font-size:16px;margin:14px 0 4px}
+  dd{margin:0 0 8px;color:var(--ink-soft)}
+  footer{font-family:var(--mono);font-size:11.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px;margin-top:36px}
+  @page{size:A4;margin:16mm 15mm 18mm}
+  @media print{
+    body{background:#fff;font-size:11.5pt}
+    .wrap{max-width:none;padding:0}
+    .lang{display:none}
+    nav{break-after:avoid}
+    h2,h3{break-after:avoid}
+    .term-box,.why,.chart{break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<p class="lang"><a href="guia-jueces-profunda.html">Español</a> · EN · shorter handout: <a href="judge-guide.html">judge-guide.html</a></p>
+
+<header>
+  <p class="meta">is-a-human · deep judge guide · labeled-set numbers only</p>
+  <h1>How the detector works, and why</h1>
+  <p class="thesis">A slower walkthrough for someone who does not write code. Every technical name is defined. Every design choice has a “why.”</p>
+  <p class="meta">Val acierto 97.2% (69 / 71) · set completo 96.6% · 22 ms en vivo · no es el set oculto de jueces</p>
+</header>
+
+<nav>
+  <p>Contents</p>
+  <ol>
+    <li><a href="#q">The question</a></li>
+    <li><a href="#arrive">What arrives at the endpoint</a></li>
+    <li><a href="#ch">How we split channel 0 and channel 1 — and how we know which is which</a></li>
+    <li><a href="#phone">Why the audio is so thin</a></li>
+    <li><a href="#vad">Finding speech (VAD)</a></li>
+    <li><a href="#ledger">The turn ledger</a></li>
+    <li><a href="#two">Two kinds of evidence</a></li>
+    <li><a href="#logistic">How a “head” turns numbers into a probability</a></li>
+    <li><a href="#fusion">How the mixer combines the two opinions</a></li>
+    <li><a href="#safety">Two safety rules after the mixer</a></li>
+    <li><a href="#reply">What we send back</a></li>
+    <li><a href="#scores">How to read the scores</a></li>
+    <li><a href="#drop">What we measured and threw away</a></li>
+    <li><a href="#numbers">Current numbers</a></li>
+    <li><a href="#glossary">Glossary A–Z</a></li>
+  </ol>
+</nav>
+
+<section id="q">
+  <h2>1</h2>
+  <h3>The question</h3>
+  <p class="big">A bank’s AI voice agent is already on the line. Someone calls in. That incoming voice is either a real person or a machine stack — speech recognition + language model + synthetic voice — improvising through the same script. We answer one bit: <b>is the incoming caller synthetic?</b></p>
+  <div class="term-box">
+    <p class="name">Synthetic caller</p>
+    <p>Not a recording played down the line. A live loop: hear the agent (ASR), invent a reply (LLM), speak it (TTS). That is why we measure <em>conversation timing</em> as well as the sound of the voice. A replay cannot wait, recover, or barge in the same way. A stack can — but it waits more uniformly.</p>
+  </div>
+  <div class="why">
+    <p class="name">Why we never try to identify the person</p>
+    <p>Human callers volunteered, were told the call was recorded, and used invented personal data. The job is “human vs machine,” not “who is this.” The model never sees a name, an account number, or a speaker ID.</p>
+  </div>
+</section>
+
+<section id="arrive">
+  <h2>2</h2>
+  <h3>What arrives at the endpoint</h3>
+  <p>Judges hit one URL for the whole visit: <span class="term">POST /detect</span>. The body is JSON. The important field is <span class="term">audio_base64</span> — the entire stereo WAV encoded as text so it can travel in that JSON.</p>
+  <div class="term-box">
+    <p class="name">Base64</p>
+    <p>A way to write binary (the WAV file) using only letters, numbers, and a few symbols. Email and HTTP do the same thing. We decode it back into bytes, then into samples. If that decode fails, we return HTTP 400, not a guess.</p>
+  </div>
+  <p>Optional fields <span class="term">sample_rate</span> and <span class="term">channels</span> are metadata. We do not trust them for the split. We read the WAV header ourselves. We accept 8 kHz (the challenge) and 16 kHz (local experiments). Anything else is rejected.</p>
+</section>
+
+<section id="ch">
+  <h2>3</h2>
+  <h3>How we split channel 0 and channel 1 — and how we know which is which</h3>
+  <p class="big">This is the most common confusion, so it is worth saying twice: <b>we do not infer who is the caller.</b> We do not listen and decide “this side sounds like a customer.” We do not train a speaker-identification model. We do not pick the louder track. The challenge wrote the rule down. We follow it.</p>
+
+  <h3>What “stereo” means here</h3>
+  <p>A mono file is one stream of numbers: air pressure, many times per second. A stereo file is <b>two</b> streams recorded in lockstep, stored as two columns in the same WAV. In music, those columns are “left speaker” and “right speaker.” In this challenge they are two <em>roles</em> on a phone call.</p>
+
+  <div class="chart">
+    <svg viewBox="0 0 640 150" width="100%" height="140" role="img" aria-label="Channel 0 caller, channel 1 agent">
+      <text x="0" y="16" fill="#6B7686" font-size="12" font-family="IBM Plex Mono, monospace">WAV column 0 · caller · the only voice we classify</text>
+      <rect x="0" y="24" width="640" height="36" fill="#ECEEF2" rx="4"/>
+      <rect x="40" y="30" width="70" height="24" fill="#0E6E6E" rx="3"/>
+      <rect x="180" y="30" width="110" height="24" fill="#0E6E6E" rx="3"/>
+      <rect x="500" y="30" width="90" height="24" fill="#0E6E6E" rx="3"/>
+      <text x="0" y="86" fill="#6B7686" font-size="12" font-family="IBM Plex Mono, monospace">WAV column 1 · bank agent · context only</text>
+      <rect x="0" y="94" width="640" height="36" fill="#ECEEF2" rx="4"/>
+      <rect x="0" y="100" width="130" height="24" fill="#9AA3B0" rx="3"/>
+      <rect x="300" y="100" width="150" height="24" fill="#9AA3B0" rx="3"/>
+    </svg>
+    <p class="src">Same clock. Overlap is allowed. We never mix the two columns back together.</p>
+  </div>
+
+  <div class="term-box">
+    <p class="name">Demux</p>
+    <p>Short for demultiplex: pull the two columns apart. In code that is <span class="term">data[:, 0]</span> → caller and <span class="term">data[:, 1]</span> → agent. If the file has fewer than two channels, we refuse it (<span class="term">NotStereoError</span>). We do not invent a second channel.</p>
+  </div>
+
+  <div class="why">
+    <p class="name">Why we “know” channel 0 is the caller</p>
+    <p>Because the organizers said so, in the brief and in the dataset: <b>channel 0 = incoming caller (classification target), channel 1 = agent.</b> Every train and val WAV was built that way. The live judge audio is built the same way. That is a <em>contract</em>, like “JSON field <span class="term">is_synthetic</span> is a boolean.” It is not a fact we discovered from the waveform.</p>
+  </div>
+
+  <div class="why warn">
+    <p class="name">What we are not doing</p>
+    <p>We are not running diarization (“who spoke when, as people”). We already have two wires. We are not comparing voices to decide roles. If a file arrived with the wires swapped, we would classify the agent and treat the caller as context — and we would be wrong. The system trusts the layout the same way a bank trusts “this RJ45 is the WAN port.”</p>
+  </div>
+
+  <h3>Why we still keep the agent channel</h3>
+  <p>The organizers’ hint: you get both channels for a reason. The caller track is the voice we judge. The agent track is the <em>stimulus</em> — when the bank bot stops, interrupts, or talks over the caller. Humans and machines recover from that turbulence differently. Without channel 1 we could still measure how messy the caller sounds. We could not measure how long they wait after the agent yields the floor.</p>
+  <p>That wait is the strongest behavioural clue we ship (Cohen’s d ≈ 1.90). It only exists because we know <em>when the agent stopped</em>, which we only know because we segmented channel 1.</p>
+</section>
+
+<section id="phone">
+  <h2>4</h2>
+  <h3>Why the audio is so thin</h3>
+  <p>Challenge audio is telephony-grade: <b>8 kHz</b>, 16-bit PCM. A studio podcast is often 44.1 or 48 kHz. Eight thousand samples per second can represent frequencies only up to 4 kHz (the Nyquist limit). Human speech still fits. Breath, fine pitch jitter, and high formants mostly do not.</p>
+  <div class="term-box">
+    <p class="name">8 kHz / PCM / Nyquist</p>
+    <p><b>PCM</b> means the file stores raw samples, not a compressed codec like MP3. <b>Nyquist</b> says you need two samples per cycle of the highest frequency you want to keep. At 8 kHz you keep up to 4 kHz — enough for vowels and most consonants on a phone line, not enough for “I heard them inhale.”</p>
+  </div>
+  <div class="why">
+    <p class="name">Why this killed several clever ideas</p>
+    <p>We looked for audible breaths and room echo of the agent leaking into the caller mic. On this band they scored <b>d = 0.00</b>. The ideas are not stupid. The medium hid them. That is why we kept loudness <em>variation</em> and timing, not “biological” micro-cues.</p>
+  </div>
+</section>
+
+<section id="vad">
+  <h2>5</h2>
+  <h3>Finding speech (VAD)</h3>
+  <p>At judging we receive audio only. The organizer files <span class="term">turns/*.json</span> exist for train and val so we can score ourselves. They will not be in the request. We must rebuild “who spoke when” from the waveform.</p>
+  <div class="term-box">
+    <p class="name">VAD — voice activity detection</p>
+    <p>A detector that answers, for each tiny slice of time: is this channel speaking, or not? We run it <em>independently</em> on channel 0 and channel 1. Then we can see overlap (both true), silence (both false), and floor switches (one stops, the other starts).</p>
+  </div>
+  <p>We tried a neural VAD (Silero) and a simple energy VAD (is this frame louder than the quiet floor + 14 dB?). The organizer labels behave like energy, not like Silero. Overlaying Silero on fitted energy <em>hurt</em> caller overlap. So the shipped backend is <b>hybrid</b>: use fitted energy; call Silero only if energy hears nothing at all.</p>
+  <div class="chart">
+    <p class="name" style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 10px">Overall IoU vs organizer turns · val 71</p>
+    <div class="bars">
+      <div class="br"><span>Silero neural</span><div class="track"><div class="f m" style="width:87.6%"></div></div><span>0.876</span></div>
+      <div class="br"><span>Energy 6 dB</span><div class="track"><div class="f m" style="width:80.7%"></div></div><span>0.807</span></div>
+      <div class="br"><span>Fitted hybrid</span><div class="track"><div class="f a" style="width:97.9%"></div></div><span>0.979</span></div>
+    </div>
+    <p class="src">IoU is not human-vs-synthetic accuracy. It is “did we mark the same stretches of speech they did?”</p>
+  </div>
+  <div class="term-box">
+    <p class="name">IoU — intersection over union</p>
+    <p>Imagine two highlighters on a timeline: ours and the organizer’s. Intersection is the time both marked as speech. Union is the time either marked. IoU = intersection ÷ union. 1.0 is a perfect match. We need this high so the features we compute at serve time look like the features we trained on. If VAD drifts, wait times and “messiness” drift with it.</p>
+  </div>
+  <div class="why">
+    <p class="name">Why 14 dB, not 6 dB</p>
+    <p>Energy VAD says “speech” when a 25 ms frame is more than N decibels above a quiet-floor estimate (the 12th percentile of frame energy). 6 dB almost never missed speech but painted a lot of noise as speech (IoU ~0.80). 14 dB sits on a plateau with 13–15 dB (IoU ~0.95). 16 dB starts to miss. We picked the middle of the plateau, confirmed on val, not a one-call spike.</p>
+  </div>
+  <p>After the mask we drop blobs shorter than 120 ms and glue gaps shorter than 280 ms. That matches how the organizer JSON merges pauses.</p>
+</section>
+
+<section id="ledger">
+  <h2>6</h2>
+  <h3>The turn ledger</h3>
+  <p>Once both channels have speech segments, we lay them on one timeline. That book of events is the <b>turn ledger</b>.</p>
+  <table>
+    <thead><tr><th>Event</th><th>What it means</th><th>Why we care</th></tr></thead>
+    <tbody>
+      <tr><td>Speech</td><td>Only one side is talking</td><td>Slice the caller’s audio for acoustic features</td></tr>
+      <tr><td>Overlap</td><td>Both sides talking at once</td><td>Turbulence; humans barge in more</td></tr>
+      <tr><td>Silence</td><td>Neither side</td><td>Dead air; also the gap before a reply</td></tr>
+      <tr><td>Floor switch</td><td>Agent stops, then caller starts (or the reverse)</td><td>The wait we measure</td></tr>
+    </tbody>
+  </table>
+  <div class="term-box">
+    <p class="name">Floor-switch latency</p>
+    <p>How many seconds pass after the agent’s speech ends before the caller’s speech begins, counting only positive waits (the caller did not already talk over the agent). Val humans sit near <b>1.22 s</b> median. Val synthetics sit near <b>2.56 s</b>. A stack is hear → think → speak. It cannot start until it detects the agent finished. A person predicts the end of the sentence.</p>
+  </div>
+</section>
+
+<section id="two">
+  <h2>7</h2>
+  <h3>Two kinds of evidence</h3>
+  <p>The organizers named three attack surfaces. We ship two. Semantic (what was said) is coded but not fused: no transcripts on disk, and seconds of extra latency.</p>
+
+  <h3>Acoustic — the voice itself</h3>
+  <p>During caller speech segments we measure how much the sound <em>wanders</em>: loudness (RMS), buzziness (zero-crossing rate), brightness (spectral centroid), tone-vs-noise (spectral flatness), peakiness (crest factor). Humans wander. Vocoders hold a steadier operating point.</p>
+  <div class="why">
+    <p class="name">Why we dropped average loudness</p>
+    <p><span class="term">caller_rms_mean</span> is the strongest separator in this zip: synthetics are louder (train means 0.15 vs 0.07). That is probably how they were injected — a fixed digital level — not a law of fake voices. The hidden set may not repeat it. We kept <span class="term">caller_rms_cv</span> (how much loudness <em>varies</em>) instead. Hybrid stacked accuracy did not fall when we dropped the mean.</p>
+  </div>
+  <div class="term-box">
+    <p class="name">CV, std, RMS, ZCR — the acoustic words</p>
+    <p><b>RMS</b> is a standard way to say “how loud” (root-mean-square of the samples). <b>Std</b> is how spread out a list of those loudnesses is. <b>CV</b> (coefficient of variation) is std ÷ mean: spread relative to typical size, so a quiet messy talker still counts as messy. <b>ZCR</b> counts how often the waveform crosses zero — a cheap “buzziness / noisiness” number.</p>
+  </div>
+
+  <h3>Behavioural — the conversation</h3>
+  <p>Three numbers: typical wait after the agent stops; how much of the call the <em>agent</em> is talking (humans leave more room); how inconsistently the caller restarts after the agent (recovery CV). Timing wins ties: the mixer weight is 2.41 for behavioural vs 1.65 for acoustic.</p>
+</section>
+
+<section id="logistic">
+  <h2>8</h2>
+  <h3>How a “head” turns numbers into a probability</h3>
+  <p>Each head is a <b>logistic regression</b>, not a deep net. That is a deliberate feasibility choice: a few weights in a JSON file, no GPU, readable.</p>
+  <ol>
+    <li>Take the feature values (for example five acoustic numbers).</li>
+    <li>Standardize them: subtract the train mean, divide by the train std, so “loudness CV” and “brightness std” sit on the same scale.</li>
+    <li>Dot product with learned weights, plus a bias. That sum is a <b>logit</b>.</li>
+    <li>Pass the logit through a sigmoid: 1 / (1 + e<sup>−x</sup>). The result is a number between 0 and 1: <b>P(synthetic)</b> according to that head.</li>
+  </ol>
+  <div class="term-box">
+    <p class="name">Head</p>
+    <p>One specialist model. Acoustic head sees only voice-texture features. Behavioural head sees only timing features. They can disagree. That disagreement is useful: it is how we know when the mixer is guessing.</p>
+  </div>
+  <p>On val, acoustic alone is 87.3% accurate (AUC 0.963). Behavioural alone is 93.0% (AUC 0.979). Neither is the system we ship. Together they catch different mistakes.</p>
+</section>
+
+<section id="fusion">
+  <h2>9</h2>
+  <h3>How the mixer combines the two opinions</h3>
+  <p><b>Stacked fusion</b> means a third logistic model whose only inputs are the two head probabilities. It learned, on out-of-fold train scores, to trust timing more than texture. We do not average 0.5/0.5. We do not pick the max. We let the data pick the weights.</p>
+  <div class="why">
+    <p class="name">Why “out of fold”</p>
+    <p>If you train the heads on the same rows you then feed to the mixer, the mixer memorizes “this train call’s acoustic score” instead of learning the relationship between the two scores. We train heads on 4/5 of train, score the held-out 1/5, rotate, then fit the mixer on those honest scores. That is stacked fusion with 5-fold OOF logits.</p>
+  </div>
+  <p>We also fitted a concatenated model (all eight features in one soup). It can look slightly better on some previews. We ship stacked because it is the honest live path, stays within 0.01 AUC, and does not chew collinear wait statistics plus the loudness trap.</p>
+</section>
+
+<section id="safety">
+  <h2>10</h2>
+  <h3>Two safety rules after the mixer</h3>
+  <p>These are not new classifiers. They are tiny, named exceptions we measured on train and confirmed on val.</p>
+  <div class="term-box">
+    <p class="name">Unsure disagreement</p>
+    <p>If the heads vote opposite sides of 0.5, <em>and</em> the mixer’s fused probability is within 0.10 of a coin flip, we take the sharper head (the one farther from 0.5). On val that saved one human and broke none. Applying “always trust the sharper head” on all 10 disagreements was a wash: save 2, break 2. So the band stays narrow.</p>
+  </div>
+  <div class="term-box">
+    <p class="name">Talkative-quiet gate</p>
+    <p>A polite person can wait 1.4–2.0 s (bot-like) and keep tidy volume, yet still take many turns. If wait is in that band, <span class="term">rms_cv</span> is below 0.45, and there are 24 or more caller turns, we flip the verdict toward human. That saved e2d538 and is why val moved from 95.8% to <b>97.2%</b>. The gate is class-agnostic (wait + tidy energy). The expert only fires for the talkative subtype, so sparse quiet bots are not mass-pardoned.</p>
+  </div>
+</section>
+
+<section id="reply">
+  <h2>11</h2>
+  <h3>What we send back</h3>
+  <table>
+    <thead><tr><th>Field</th><th>What it is</th><th>How it is made</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">is_synthetic</td><td>Required yes/no</td><td>True if P(synthetic) ≥ 0.5</td></tr>
+      <tr><td class="mono">confidence</td><td>How sure we are of that yes/no</td><td>P if we said synthetic, else 1 − P</td></tr>
+      <tr><td class="mono">views</td><td>Debug only</td><td>Per-head P(synthetic); judges may ignore</td></tr>
+    </tbody>
+  </table>
+  <div class="why">
+    <p class="name">Why confidence is not P(synthetic)</p>
+    <p>If P = 0.12 we say <span class="term">is_synthetic: false</span> with confidence 0.88: “we are 88% sure this is a person.” The judge reconstructs P as confidence when the flag is true, and 1 − confidence when false. That lets them compute AUC and Brier without a third field.</p>
+  </div>
+  <p>Example: sure machine P=0.87 → true / 0.87. Sure person P=0.12 → false / 0.88. Coin flip P=0.51 → true / 0.51.</p>
+</section>
+
+<section id="scores">
+  <h2>12</h2>
+  <h3>How to read the scores</h3>
+  <div class="term-box">
+    <p class="name">Accuracy</p>
+    <p>Share of calls we get right at the 0.5 line. Val: 69/71 = 97.2%. Easy to say. Sensitive to class balance and to that one threshold.</p>
+  </div>
+  <div class="term-box">
+    <p class="name">AUC</p>
+    <p>Area under the ROC curve. Pick one human and one synthetic at random. How often does the synthetic get the higher P? 0.5 is a coin. 1.0 is perfect ranking. Ours on val stacked is 0.997. This does not care about the 0.5 cutoff — only order.</p>
+  </div>
+  <div class="term-box">
+    <p class="name">TPR / TNR / balanced accuracy</p>
+    <p><b>TPR</b> (true positive rate): of the synthetics, how many did we catch. Full set 98.0% (199/203). <b>TNR</b> (true negative rate): of the humans, how many did we clear. Full set 94.7% (142/150). <b>Balanced accuracy</b> is the average of those two, so a lopsided dataset cannot hide “we just always say synthetic.”</p>
+  </div>
+  <div class="term-box">
+    <p class="name">Brier score</p>
+    <p>How honest the probabilities are, not just the yes/no. Saying 0.99 on a coin-flip call is punished. The judge can compute this from the recovered P(synthetic).</p>
+  </div>
+  <div class="term-box">
+    <p class="name">Cohen’s d</p>
+    <p>How far apart two group means sit, in standard deviations. |d| = 0.2 small, 0.5 medium, 0.8 large. Our shipped clues sit between 1.2 and 1.9. Sign tells direction: wait is higher for synthetics; messiness is higher for humans.</p>
+  </div>
+  <div class="term-box">
+    <p class="name">Speaker-disjoint</p>
+    <p>No caller in train appears in val. Judging is a third group of people and voices. Memorizing “this polite human waits 1.75 s” will not transfer. That is why we froze on the last two val misses instead of adding a feature for them.</p>
+  </div>
+</section>
+
+<section id="drop">
+  <h2>13</h2>
+  <h3>What we measured and threw away</h3>
+  <p>We extracted 68 numeric features. Eight shipped. The unused ideas are part of the result: we know they failed on this medium.</p>
+  <table>
+    <thead><tr><th>Idea</th><th>Why it sounded good</th><th>Why it died</th></tr></thead>
+    <tbody>
+      <tr><td>Breath / inhalations</td><td>People inhale; bots may not</td><td>d = 0.00 at 8 kHz, short banking utterances</td></tr>
+      <tr><td>Room bleed / echo</td><td>A real phone should pick up the agent in the room</td><td>Call conditions vary; no stable split</td></tr>
+      <tr><td>Average loudness</td><td>Synths in this zip are louder</td><td>Injection trap; hidden set may not match</td></tr>
+      <tr><td>Formant volatility</td><td>Mouth shape should wander</td><td>Ranks high on val, points the wrong way; LPC at 8 kHz is unreliable</td></tr>
+      <tr><td>Pitch jitter</td><td>Vocal-fold micro-wobble</td><td>val d ≈ 0</td></tr>
+      <tr><td>Live Whisper / semantics</td><td>Bots invent fake account facts</td><td>No transcripts; trap lines are often the agent’s script; seconds of latency</td></tr>
+    </tbody>
+  </table>
+  <p>The organizer line we followed: <b>depth beats breadth.</b> One signal done well outscores three that half-work.</p>
+</section>
+
+<section id="numbers">
+  <h2>14</h2>
+  <h3>Current numbers (labeled set)</h3>
+  <div class="chart">
+    <div class="bars">
+      <div class="br"><span>Acoustic only</span><div class="track"><div class="f m" style="width:87.3%"></div></div><span>87.3%</span></div>
+      <div class="br"><span>Behavioural only</span><div class="track"><div class="f m" style="width:93%"></div></div><span>93.0%</span></div>
+      <div class="br"><span>Stacked mixer</span><div class="track"><div class="f m" style="width:94.4%"></div></div><span>94.4%</span></div>
+      <div class="br"><span>+ disagreement</span><div class="track"><div class="f a" style="width:95.8%"></div></div><span>95.8%</span></div>
+      <div class="br"><span>+ talkative-quiet</span><div class="track"><div class="f h" style="width:97.2%"></div></div><span>97.2%</span></div>
+    </div>
+    <p class="src">Val accuracy. Train 96.5% (272/282). All 353: 96.6% (341). Live mean 22 ms after dropping unused extras (same verdicts as the 1.4 s path).</p>
+  </div>
+  <p>Two val misses remain. <span class="term">6971</span> is a careful quiet human both heads call synthetic. <span class="term">d4518</span> is a synthetic the acoustic head already has (0.87); the mixer trusted a human-like 1.74 s wait. We froze. Chasing both memorizes types that will reappear differently on the hidden set.</p>
+</section>
+
+<section id="glossary">
+  <h2>15</h2>
+  <h3>Glossary A–Z</h3>
+  <dl>
+    <dt>8 kHz</dt>
+    <dd>Phone-line sample rate. Keeps frequencies up to 4 kHz. Hides breath and fine pitch.</dd>
+    <dt>Agent (channel 1)</dt>
+    <dd>The bank’s AI voice. Never classified. Used as the stimulus the caller reacts to.</dd>
+    <dt>ASR + LLM + TTS</dt>
+    <dd>Hear, think, speak. The synthetic stack we are hunting. Not a replayed clip.</dd>
+    <dt>AUC</dt>
+    <dd>Ranking quality. Probability that a random synthetic scores higher than a random human.</dd>
+    <dt>Base64</dt>
+    <dd>Text encoding of the WAV so it can sit inside JSON.</dd>
+    <dt>Caller (channel 0)</dt>
+    <dd>The incoming voice. The only target. Assigned by the challenge layout, not inferred.</dd>
+    <dt>Cohen’s d</dt>
+    <dd>Standardized gap between group means. |d| &gt; 0.8 is large.</dd>
+    <dt>Confidence</dt>
+    <dd>Certainty in the yes/no label, not raw P(synthetic). Judge inverts it when the label is false.</dd>
+    <dt>CV (coefficient of variation)</dt>
+    <dd>Spread ÷ typical size. Lets a quiet messy talker still look messy.</dd>
+    <dt>Demux</dt>
+    <dd>Split stereo columns: [:,0] caller, [:,1] agent.</dd>
+    <dt>Diarization</dt>
+    <dd>Inferring who spoke from a mixed recording. We do not do this; we already have two wires.</dd>
+    <dt>Feature</dt>
+    <dd>One number computed from a call (wait time, loudness CV, …).</dd>
+    <dt>Floor switch</dt>
+    <dd>One side stops; the other starts. The wait after the agent stops is our strongest timing clue.</dd>
+    <dt>Head</dt>
+    <dd>One logistic specialist (acoustic or behavioural).</dd>
+    <dt>Hybrid VAD</dt>
+    <dd>Fitted energy detector; Silero only if energy returns no segments.</dd>
+    <dt>Injection artifact</dt>
+    <dd>A pattern true in this zip (synths louder) that may be a side effect of how files were made.</dd>
+    <dt>IoU</dt>
+    <dd>Overlap quality of our speech segments vs organizer segments. High IoU keeps train and serve aligned.</dd>
+    <dt>Logistic regression</dt>
+    <dd>Weighted sum of standardized features, then a sigmoid → probability. No deep net in production.</dd>
+    <dt>Logit</dt>
+    <dd>The number before the sigmoid. Positive leans synthetic.</dd>
+    <dt>Overfit</dt>
+    <dd>Memorizing this dataset’s leftovers so you fail on new speakers. Why we froze on two misses.</dd>
+    <dt>P(synthetic)</dt>
+    <dd>Our estimated probability the caller is a machine. Verdict is yes at 0.5.</dd>
+    <dt>PCM</dt>
+    <dd>Uncompressed samples in the WAV.</dd>
+    <dt>RMS</dt>
+    <dd>Root-mean-square energy; a loudness number.</dd>
+    <dt>Sigmoid</dt>
+    <dd>S-shaped curve that squashes any real number into (0, 1).</dd>
+    <dt>Speaker-disjoint</dt>
+    <dd>Train, val, and hidden set share no callers.</dd>
+    <dt>Stacked fusion</dt>
+    <dd>A third logistic model on the two head probabilities, trained on out-of-fold scores.</dd>
+    <dt>Stereo</dt>
+    <dd>Two synchronized tracks in one file. Here: roles, not left/right music.</dd>
+    <dt>Turn ledger</dt>
+    <dd>Timeline of speech, overlap, and silence on both channels.</dd>
+    <dt>VAD</dt>
+    <dd>Voice activity detection; speech vs silence per channel.</dd>
+    <dt>Vocoder / TTS</dt>
+    <dd>The machine that renders the synthetic voice. Tends to hold texture steadier than a throat.</dd>
+    <dt>ZCR</dt>
+    <dd>Zero-crossing rate; a cheap buzziness measure.</dd>
+  </dl>
+</section>
+
+<footer>
+  Labeled-set figures only. Hidden judging audio is unseen. Channel roles are a challenge contract: ch0 caller, ch1 agent. We do not infer them. Print this page to PDF (File → Print → Save as PDF) or use the generated PDF in docs/.
+</footer>
+</div>
+</body>
+</html>

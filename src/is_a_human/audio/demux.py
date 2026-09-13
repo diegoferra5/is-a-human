@@ -16,6 +16,7 @@ from is_a_human.audio.errors import (
     SampleRateError,
 )
 
+# Challenge audio is 8 kHz; 16 kHz accepted for local experiments.
 SUPPORTED_SAMPLE_RATES = {8000, 16000}
 
 
@@ -46,6 +47,7 @@ def demux_wav_bytes(raw_bytes: bytes) -> Tuple[np.ndarray, np.ndarray, int]:
             f"Unsupported sample rate {sample_rate} Hz; expected one of {sorted(SUPPORTED_SAMPLE_RATES)}"
         )
 
+    # Channel 0 = caller (classification target); channel 1 = agent (context only).
     ch0_caller = np.ascontiguousarray(data[:, 0])
     ch1_agent = np.ascontiguousarray(data[:, 1])
     return ch0_caller, ch1_agent, int(sample_rate)

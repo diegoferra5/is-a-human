@@ -1,3 +1,5 @@
+"""Entry point for `is-a-human-serve` (uvicorn on 0.0.0.0:8000)."""
+
 import uvicorn
 
 
