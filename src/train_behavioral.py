@@ -43,24 +43,42 @@ def main():
     )
     model.fit(Xtr, ytr)
 
-    p = model.predict_proba(Xva)[:, 1]
-    pred = (p >= 0.5).astype(int)
-    print("\n=== VAL ===")
+    # --- BEFORE calibration: raw XGBoost probabilities ---
+    p_raw = model.predict_proba(Xva)[:, 1]
+    pred = (p_raw >= 0.5).astype(int)
+    print("\n=== VAL (raw model) ===")
     print(f"accuracy : {accuracy_score(yva, pred):.3f}")
-    print(f"roc_auc  : {roc_auc_score(yva, p):.3f}")
-    print(f"brier    : {brier_score_loss(yva, p):.3f}  (lower=better calibrated)")
+    print(f"roc_auc  : {roc_auc_score(yva, p_raw):.3f}")
+    print(f"brier    : {brier_score_loss(yva, p_raw):.3f}  (lower=better calibrated)")
     print(classification_report(yva, pred, target_names=["human", "synthetic"]))
+
+    # --- Platt calibration (option 1): CalibratedClassifierCV with 5-fold ---
+    # Internally splits `train` into 5 folds: fits XGBoost on 4, fits a logistic
+    # corrector on the held-out 1, rotates, averages. Uses ONLY train data, so
+    # val stays a clean test of whether calibration helped.
+    from sklearn.calibration import CalibratedClassifierCV
+    calibrated = CalibratedClassifierCV(model, method="sigmoid", cv=5)
+    calibrated.fit(Xtr, ytr)
+
+    p_cal = calibrated.predict_proba(Xva)[:, 1]
+    print("=== VAL (calibrated) ===")
+    print(f"accuracy : {accuracy_score(yva, (p_cal>=.5)):.3f}  (verdicts barely change)")
+    print(f"roc_auc  : {roc_auc_score(yva, p_cal):.3f}  (ranking unchanged)")
+    print(f"brier    : {brier_score_loss(yva, p_cal):.3f}  <-- compare to raw above")
 
     imp = sorted(zip(feat_cols, model.feature_importances_),
                  key=lambda x: -x[1])[:12]
-    print("top features:")
+    print("\ntop features:")
     for name, w in imp:
         print(f"  {name:24s} {w:.3f}")
 
+    # Calibration didn't help on this data (Brier went up), so we save the RAW
+    # model. The calibration above stays as a measured comparison; revisit it at
+    # the fusion stage where the combined probability may need it.
     out = MODELS / "behavioral.pkl"
     with open(out, "wb") as f:
         pickle.dump({"model": model, "feat_cols": feat_cols}, f)
-    print(f"\nsaved -> {out}")
+    print(f"\nsaved raw model -> {out}")
 
 
 if __name__ == "__main__":

@@ -8,6 +8,7 @@ Carries the audio + lazily-computed turns so each view can pull what it needs
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -42,11 +43,13 @@ class Call:
         if self._turns is not None:
             return self._turns
         cache_file = _VAD_CACHE / f"{self.anon_id}.json"
-        if cache_file.exists():
+        if cache_file.exists() and cache_file.stat().st_size > 0:
             self._turns = json.loads(cache_file.read_text())
         else:
             self._turns = extract_turns(self.audio_path)
-            cache_file.write_text(json.dumps(self._turns))
+            tmp = cache_file.with_suffix(f".tmp.{os.getpid()}")  # atomic write
+            tmp.write_text(json.dumps(self._turns))
+            os.replace(tmp, cache_file)
         return self._turns
 
     def audio(self) -> tuple[np.ndarray, int]:

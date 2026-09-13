@@ -8,6 +8,7 @@ VAD turns are cached under cache/vad_turns/ so we compute them once.
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -24,9 +25,15 @@ def turns_path_for(aid: str, source: str) -> Path:
     if source == "turns":
         return TURNS / f"{aid}.json"
     cache_file = VAD_CACHE / f"{aid}.json"
-    if not cache_file.exists():
-        with open(cache_file, "w") as f:
-            json.dump(extract_turns(AUDIO / f"{aid}.wav"), f)
+    # Treat empty/corrupt files (e.g. from an interrupted run) as missing.
+    if not cache_file.exists() or cache_file.stat().st_size == 0:
+        data = extract_turns(AUDIO / f"{aid}.wav")
+        # Atomic write: fill a temp file, then rename it into place. A reader
+        # never sees a half-written file, so parallel runs can't corrupt it.
+        tmp = cache_file.with_suffix(f".tmp.{os.getpid()}")
+        with open(tmp, "w") as f:
+            json.dump(data, f)
+        os.replace(tmp, cache_file)
     return cache_file
 
 

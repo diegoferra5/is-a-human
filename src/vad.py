@@ -84,11 +84,38 @@ def channel_turns(sig: np.ndarray, sr: int) -> list[tuple[float, float]]:
     return _segments(mask, hop, sr)
 
 
-def extract_turns(path: str | Path) -> dict:
+# ---- Silero VAD backend (pretrained neural net; sharper boundaries) ---------
+# Small model (~1MB) that natively supports 8 kHz. We load it once and reuse it.
+_silero_model = None
+
+
+def _load_silero():
+    global _silero_model
+    if _silero_model is None:
+        from silero_vad import load_silero_vad
+        _silero_model = load_silero_vad()
+    return _silero_model
+
+
+def channel_turns_silero(sig: np.ndarray, sr: int) -> list[tuple[float, float]]:
+    import torch
+    from silero_vad import get_speech_timestamps
+    model = _load_silero()
+    audio = torch.from_numpy(sig.astype(np.float32))
+    ts = get_speech_timestamps(audio, model, sampling_rate=sr, return_seconds=True)
+    return [(seg["start"], seg["end"]) for seg in ts]
+
+
+def extract_turns(path: str | Path, backend: str = "silero") -> dict:
+    """backend="silero" (default, accurate) or "energy" (simple fallback)."""
     x, sr = read_wav(path)
     turns = []
     for ch in range(x.shape[1]):
-        for s, e in channel_turns(x[:, ch], sr):
+        if backend == "silero":
+            segs = channel_turns_silero(x[:, ch], sr)
+        else:
+            segs = channel_turns(x[:, ch], sr)
+        for s, e in segs:
             turns.append({"channel": ch, "start": round(s, 2), "end": round(e, 2)})
     turns.sort(key=lambda t: t["start"])
     return {"turns": turns}
