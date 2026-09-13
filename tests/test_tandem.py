@@ -101,7 +101,7 @@ def test_train_tandem_separates_and_roundtrips(tmp_path):
     probability, views = loaded.predict(val[1])
     assert 0.0 <= probability <= 1.0
     assert probability > 0.5
-    assert set(views) == {"acoustic", "behavioral"}
+    assert {"acoustic", "behavioral"} <= set(views)
 
 
 def test_default_heads_drop_rms_mean_and_collinear_latency():

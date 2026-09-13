@@ -11,6 +11,7 @@ from fastapi import FastAPI, HTTPException
 from is_a_human.api.schemas import DetectRequest, DetectResponse, verdict_from_probability
 from is_a_human.audio.demux import demux_base64_telephony
 from is_a_human.audio.errors import AudioValidationError
+from is_a_human.asr import transcribe_caller
 from is_a_human.detect.live import detect_from_audio, log_layer_timings
 from is_a_human.detect.tandem import DEFAULT_MODEL_PATH, TandemModel, load_tandem
 
@@ -68,7 +69,8 @@ def create_app(model_path: Path | str | None = None) -> FastAPI:
         started = perf_counter()
         call_id = request.call_id or "live"
         probability, views, timings = detect_from_audio(
-            state.model, ch0, ch1, sample_rate, call_id=call_id, heavy=False
+            state.model, ch0, ch1, sample_rate, call_id=call_id, heavy=False,
+            transcribe=transcribe_caller,
         )
         log_layer_timings(call_id, timings, total_ms=(perf_counter() - started) * 1000)
         is_synthetic, confidence = verdict_from_probability(probability)

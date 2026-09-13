@@ -3,6 +3,7 @@ from is_a_human.analysis.features import (
     BEHAVIORAL_HEAD_FEATURES,
     CallFeatures,
 )
+from is_a_human.analysis.semantic import SEMANTIC_AVAILABLE, SEMANTIC_HEAD_FEATURES
 from is_a_human.eval.benchmark_html import render_benchmark_page
 from is_a_human.eval.layer_benchmark import (
     ACOUSTIC_FEATURES,
@@ -25,7 +26,10 @@ def test_feature_groups_partition_numeric_fields():
         "agent_aligned_recovery_cv",
     )
     assert set(ACOUSTIC_FEATURES).isdisjoint(BEHAVIORAL_FEATURES)
-    assert set(ACOUSTIC_FEATURES) | set(BEHAVIORAL_FEATURES) == numeric
+    assert set(ACOUSTIC_FEATURES).isdisjoint(SEMANTIC_HEAD_FEATURES)
+    assert set(BEHAVIORAL_FEATURES).isdisjoint(SEMANTIC_HEAD_FEATURES)
+    semantic = set(SEMANTIC_HEAD_FEATURES) | {SEMANTIC_AVAILABLE}
+    assert set(ACOUSTIC_FEATURES) | set(BEHAVIORAL_FEATURES) | semantic == numeric
 
 
 def _row(label: str, caller_talk: float, agent_talk: float) -> CallFeatures:

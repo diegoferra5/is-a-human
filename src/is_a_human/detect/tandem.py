@@ -21,14 +21,25 @@ from is_a_human.analysis.features import (
     BEHAVIORAL_HEAD_FEATURES,
     CallFeatures,
 )
+from is_a_human.analysis.semantic import SEMANTIC_HEAD_FEATURES
 from is_a_human.eval.layer_benchmark import select_top_features
 from is_a_human.turns.backends import DEFAULT_VAD_BACKEND, VadBackendName
 
 DEFAULT_MODEL_PATH = Path("models/tandem.json")
 STACK_MARGIN = 0.01
 FUSION_FEATURES = ("p_acoustic", "p_behavioral")
+FUSION3_FEATURES = ("p_acoustic", "p_behavioral", "p_semantic")
 # When heads disagree and the mixer is near 0.5, use the sharper head.
 DISAGREE_UNSURE = 0.10
+# Fast path answers when |p - 0.5| >= GATE_MARGIN and the two fast heads agree.
+# Otherwise the caller is transcribed and the semantic head joins in. Both
+# margins were read off train OOF (see reports/robustness/): the unsure gate
+# alone lifts 95.7 -> 97.6; adding the disagreement trigger costs ~3 points of
+# extra Whisper calls and lifts a flipped-behavioural-head scenario from 50 to
+# 68 -- a confidently wrong head never looks unsure, so without the trigger the
+# semantic head would never be consulted exactly when it is needed.
+GATE_MARGIN = 0.30
+DISAGREE_MARGIN = 0.15
 
 
 def resolve_disagreement(
@@ -59,11 +70,92 @@ class TandemModel:
     concatenated: TrainedLogistic | None
     metrics: dict
     disagree_unsure: float = DISAGREE_UNSURE
+    semantic: TrainedLogistic | None = None
+    fusion3: TrainedLogistic | None = None      # fit for the report; not used to decide
+    gate_margin: float = GATE_MARGIN
+    disagree_margin: float = DISAGREE_MARGIN
+
+    # ---- head availability --------------------------------------------------
+    @staticmethod
+    def head_availability(features: CallFeatures) -> dict[str, bool]:
+        """Which fast heads can be trusted for this call.
+
+        The behavioural head is made of turn boundaries and the acoustic head
+        of frames inside caller segments, so when the VAD finds no caller
+        speech both are reading nothing. A call under a second of caller
+        speech gives the acoustic statistics almost no frames either."""
+        duration_s = float(getattr(features, "duration_s", 0.0))
+        caller_segments = float(getattr(features, "caller_segment_count", 0.0))
+        caller_ratio = float(getattr(features, "caller_talk_ratio", 0.0))
+        caller_speech_s = caller_ratio * duration_s
+        # Only a real call (positive duration) with no caller speech at all counts
+        # as a dead VAD; synthetic feature rows in tests carry no duration.
+        vad_dead = duration_s > 0 and caller_segments <= 0 and caller_ratio <= 0
+        return {
+            "acoustic": not vad_dead and not (duration_s > 0 and caller_speech_s < 1.0),
+            "behavioral": not vad_dead,
+        }
+
+    def neutral(self, head: str) -> float:
+        """The probability at which a head adds nothing to the fusion: its
+        training mean, which the fusion's scaler maps to zero."""
+        idx = {"acoustic": 0, "behavioral": 1}[head]
+        return float(self.fusion.mean[idx]) if self.fusion is not None else 0.5
+
+    # ---- three-head path ---------------------------------------------------
+    def has_semantic(self) -> bool:
+        return self.semantic is not None
+
+    def heads_disagree(self, views: dict[str, float]) -> bool:
+        """Both fast heads available, on opposite sides of 0.5, each by a margin."""
+        if views.get("acoustic_ok", 1.0) < 1.0 or views.get("behavioral_ok", 1.0) < 1.0:
+            return False
+        a, b = views["acoustic"] - 0.5, views["behavioral"] - 0.5
+        return a * b < 0 and abs(a) > self.disagree_margin and abs(b) > self.disagree_margin
+
+    def needs_semantic(
+        self,
+        p_fast: float,
+        availability: dict[str, bool] | None = None,
+        views: dict[str, float] | None = None,
+    ) -> bool:
+        """Consult the semantic head when the fast path is unsure, when its two
+        heads contradict each other, or when one of them was masked."""
+        if not self.has_semantic():
+            return False
+        if availability is not None and not all(availability.values()):
+            return True
+        if views is not None and self.heads_disagree(views):
+            return True
+        return abs(p_fast - 0.5) < self.gate_margin
+
+    @staticmethod
+    def _logit(p: float) -> float:
+        p = min(max(p, 1e-6), 1 - 1e-6)
+        return float(np.log(p / (1 - p)))
+
+    def predict_full(self, features: CallFeatures) -> tuple[float, dict[str, float]]:
+        """Fast fusion and semantic head combined as the mean of their log-odds.
+
+        Parameter-free on purpose: a fitted three-way combiner scored the same
+        on clean train OOF and worse whenever a head was masked or corrupted
+        (reports/robustness/). Falls back to the fast path when the row has no
+        transcript (semantic_available == 0)."""
+        p_fast, views = self.predict(features)
+        if not self.has_semantic() or float(getattr(features, "semantic_available", 0.0)) < 1.0:
+            return p_fast, views
+        views = dict(views)
+        views["semantic"] = self.semantic.predict_one(features)
+        z = (self._logit(p_fast) + self._logit(views["semantic"])) / 2.0
+        return float(1.0 / (1.0 + np.exp(-z))), views
 
     def predict(self, features: CallFeatures) -> tuple[float, dict[str, float]]:
+        avail = self.head_availability(features)
         views = {
-            "acoustic": self.acoustic.predict_one(features),
-            "behavioral": self.behavioral.predict_one(features),
+            "acoustic": self.acoustic.predict_one(features) if avail["acoustic"] else self.neutral("acoustic"),
+            "behavioral": self.behavioral.predict_one(features) if avail["behavioral"] else self.neutral("behavioral"),
+            "acoustic_ok": 1.0 if avail["acoustic"] else 0.0,
+            "behavioral_ok": 1.0 if avail["behavioral"] else 0.0,
         }
         if self.fusion_type == "stacked" and self.fusion is not None:
             stacked = SimpleNamespace(
@@ -123,27 +215,66 @@ def _stratified_folds(labels: list[str], n_splits: int, seed: int = 0):
             yield train_idx, val_idx
 
 
-def _fit_stacked_fusion(
+def _oof_head_probabilities(
     train_rows: list[CallFeatures],
-    acoustic_names: tuple[str, ...],
-    behavioral_names: tuple[str, ...],
-) -> TrainedLogistic:
+    heads: dict[str, tuple[str, ...]],
+) -> np.ndarray:
+    """Out-of-fold P(synthetic) per head, shape (rows, heads). Each head is refit
+    on four fifths and scores the fifth it did not see."""
     labels = [row.label for row in train_rows]
-    oof = np.full((len(train_rows), 2), 0.5)
+    names = list(heads)
+    oof = np.full((len(train_rows), len(names)), 0.5)
     for train_idx, val_idx in _stratified_folds(labels, n_splits=5):
         fold_train = [train_rows[i] for i in train_idx]
         fold_val = [train_rows[i] for i in val_idx]
         if {row.label for row in fold_train} != {"human", "synthetic"}:
             continue
-        acoustic = train_logistic_regression(fold_train, acoustic_names)
-        behavioral = train_logistic_regression(fold_train, behavioral_names)
-        oof[val_idx, 0] = acoustic.predict_proba_rows(fold_val)
-        oof[val_idx, 1] = behavioral.predict_proba_rows(fold_val)
+        for j, name in enumerate(names):
+            head = train_logistic_regression(fold_train, heads[name])
+            oof[val_idx, j] = head.predict_proba_rows(fold_val)
+    return oof
+
+
+def _fit_stacked_fusion(
+    train_rows: list[CallFeatures],
+    acoustic_names: tuple[str, ...],
+    behavioral_names: tuple[str, ...],
+    semantic_names: tuple[str, ...] | None = None,
+) -> TrainedLogistic:
+    """Two-head fusion, or three-head when semantic_names is given."""
+    heads = {"p_acoustic": acoustic_names, "p_behavioral": behavioral_names}
+    if semantic_names:
+        heads["p_semantic"] = semantic_names
+    oof = _oof_head_probabilities(train_rows, heads)
     fusion_rows = [
-        SimpleNamespace(label=row.label, p_acoustic=float(oof[i, 0]), p_behavioral=float(oof[i, 1]))
+        SimpleNamespace(label=row.label, **{k: float(oof[i, j]) for j, k in enumerate(heads)})
         for i, row in enumerate(train_rows)
     ]
-    return train_logistic_regression(fusion_rows, FUSION_FEATURES)
+    return train_logistic_regression(fusion_rows, tuple(heads))
+
+
+def _gate_report(
+    train_rows: list[CallFeatures],
+    acoustic_names: tuple[str, ...],
+    behavioral_names: tuple[str, ...],
+    margin: float,
+) -> dict:
+    """What the gate does on train OOF: how many calls it sends to Whisper and
+    how many of the fast path's misses it catches."""
+    oof = _oof_head_probabilities(train_rows, {"p_acoustic": acoustic_names, "p_behavioral": behavioral_names})
+    fusion_rows = [SimpleNamespace(label=r.label, p_acoustic=float(oof[i, 0]), p_behavioral=float(oof[i, 1]))
+                   for i, r in enumerate(train_rows)]
+    fusion = train_logistic_regression(fusion_rows, FUSION_FEATURES)
+    p = fusion.predict_proba_rows(fusion_rows)
+    y = np.array([1.0 if r.label == "synthetic" else 0.0 for r in train_rows])
+    miss = (p >= 0.5) != (y == 1)
+    gated = np.abs(p - 0.5) < margin
+    return {
+        "margin": margin,
+        "train_oof_gated_fraction": round(float(gated.mean()), 4),
+        "train_oof_fast_misses": int(miss.sum()),
+        "train_oof_misses_inside_gate": int((miss & gated).sum()),
+    }
 
 
 def train_tandem_from_rows(
@@ -152,9 +283,16 @@ def train_tandem_from_rows(
     *,
     acoustic_features: tuple[str, ...] = ACOUSTIC_HEAD_FEATURES,
     behavioral_features: tuple[str, ...] = BEHAVIORAL_HEAD_FEATURES,
+    semantic_features: tuple[str, ...] = SEMANTIC_HEAD_FEATURES,
     vad_backend: VadBackendName = DEFAULT_VAD_BACKEND,
+    gate_margin: float = GATE_MARGIN,
+    disagree_margin: float = DISAGREE_MARGIN,
 ) -> TandemModel:
-    """Fit heads + both fusion styles. Ship stacked if within STACK_MARGIN of concat val AUC."""
+    """Fit heads + both fusion styles. Ship stacked if within STACK_MARGIN of concat val AUC.
+
+    When the training rows carry transcripts (semantic_available == 1), a third
+    head and a three-head fusion are fit as well, and the model gates between
+    the two at serve time."""
     acoustic_names = tuple(acoustic_features)
     behavioral_names = tuple(behavioral_features)
     if not acoustic_names or not behavioral_names:
@@ -218,6 +356,43 @@ def train_tandem_from_rows(
     if fusion_type == "stacked":
         model.metrics["stacked"]["val"] = _metrics_from_predict(model, val_rows)
         model.metrics["disagree_unsure"] = DISAGREE_UNSURE
+
+    # ---- semantic head + three-head fusion, only when transcripts exist -----
+    sem_train = [r for r in train_rows if float(getattr(r, "semantic_available", 0.0)) >= 1.0]
+    sem_val = [r for r in val_rows if float(getattr(r, "semantic_available", 0.0)) >= 1.0]
+    if semantic_features and len(sem_train) >= 40 and {r.label for r in sem_train} == {"human", "synthetic"}:
+        semantic_names = tuple(semantic_features)
+        model.semantic = train_logistic_regression(sem_train, semantic_names)
+        model.fusion3 = _fit_stacked_fusion(sem_train, acoustic_names, behavioral_names, semantic_names)
+        model.gate_margin = gate_margin
+        model.disagree_margin = disagree_margin
+        model.metrics["semantic"] = {
+            "val": _metrics_dict(model.semantic, sem_val) if sem_val else {},
+            "features_used": list(semantic_names),
+            "train_rows_with_transcript": len(sem_train),
+        }
+        model.metrics["gate"] = _gate_report(train_rows, acoustic_names, behavioral_names, gate_margin)
+        if sem_val:
+            y_true = np.array([1.0 if r.label == "synthetic" else 0.0 for r in sem_val])
+            y_full = np.array([model.predict_full(r)[0] for r in sem_val])
+            def _gated(r):
+                p, v = model.predict(r)
+                return model.predict_full(r)[0] if model.needs_semantic(p, model.head_availability(r), v) else p
+            y_gated = np.array([_gated(r) for r in sem_val])
+            model.metrics["stacked3"] = {"val": {
+                "always": {k: round(float(v), 4) for k, v in
+                           _compute_metrics(y_true, (y_full >= 0.5).astype(int), y_full).__dict__.items()
+                           if k in ("accuracy", "f1", "auc")},
+                "gated": {k: round(float(v), 4) for k, v in
+                          _compute_metrics(y_true, (y_gated >= 0.5).astype(int), y_gated).__dict__.items()
+                          if k in ("accuracy", "f1", "auc")},
+                "gated_fraction": round(float(np.mean([
+                    model.needs_semantic(model.predict(r)[0], model.head_availability(r), model.predict(r)[1])
+                    for r in sem_val])), 4),
+            }}
+            model.metrics["fusion3_weights"] = {
+                k: round(float(w), 4) for k, w in zip(FUSION3_FEATURES, model.fusion3.weights)
+            } | {"bias": round(float(model.fusion3.bias), 4)}
     return model
 
 
@@ -229,6 +404,9 @@ def train_tandem(
     vad_backend: VadBackendName = DEFAULT_VAD_BACKEND,
     acoustic_features: tuple[str, ...] = ACOUSTIC_HEAD_FEATURES,
     behavioral_features: tuple[str, ...] = BEHAVIORAL_HEAD_FEATURES,
+    semantic_features: tuple[str, ...] = SEMANTIC_HEAD_FEATURES,
+    transcripts_dir: Path | str | None = None,
+    gate_margin: float = GATE_MARGIN,
 ) -> TandemModel:
     train_rows = _collect_features(
         "train",
@@ -237,6 +415,7 @@ def train_tandem(
         show_progress=show_progress,
         heavy=False,
         vad_backend=vad_backend,
+        transcripts_dir=transcripts_dir,
     )
     val_rows = _collect_features(
         "val",
@@ -245,13 +424,16 @@ def train_tandem(
         show_progress=show_progress,
         heavy=False,
         vad_backend=vad_backend,
+        transcripts_dir=transcripts_dir,
     )
     return train_tandem_from_rows(
         train_rows,
         val_rows,
         acoustic_features=acoustic_features,
         behavioral_features=behavioral_features,
+        semantic_features=semantic_features,
         vad_backend=vad_backend,
+        gate_margin=gate_margin,
     )
 
 
@@ -266,6 +448,10 @@ def save_tandem(model: TandemModel, path: Path | str = DEFAULT_MODEL_PATH) -> Pa
         "behavioral": model.behavioral.to_dict(),
         "fusion": model.fusion.to_dict() if model.fusion else None,
         "concatenated": model.concatenated.to_dict() if model.concatenated else None,
+        "semantic": model.semantic.to_dict() if model.semantic else None,
+        "fusion3": model.fusion3.to_dict() if model.fusion3 else None,
+        "gate_margin": model.gate_margin,
+        "disagree_margin": model.disagree_margin,
         "metrics": model.metrics,
     }
     output.write_text(json.dumps(payload, indent=2), encoding="utf-8")
@@ -285,6 +471,10 @@ def load_tandem(path: Path | str = DEFAULT_MODEL_PATH) -> TandemModel:
         concatenated=TrainedLogistic.from_dict(concat_payload) if concat_payload else None,
         metrics=payload.get("metrics") or {},
         disagree_unsure=float(payload.get("disagree_unsure", DISAGREE_UNSURE)),
+        semantic=TrainedLogistic.from_dict(payload["semantic"]) if payload.get("semantic") else None,
+        fusion3=TrainedLogistic.from_dict(payload["fusion3"]) if payload.get("fusion3") else None,
+        gate_margin=float(payload.get("gate_margin", GATE_MARGIN)),
+        disagree_margin=float(payload.get("disagree_margin", DISAGREE_MARGIN)),
     )
 
 

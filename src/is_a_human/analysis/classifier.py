@@ -109,7 +109,10 @@ def train_logistic_regression(
     learning_rate: float = 0.05,
     epochs: int = 2500,
     l2: float = 0.01,
+    sample_weight: np.ndarray | None = None,
 ) -> TrainedLogistic:
+    """sample_weight: optional per-row weights (normalised to mean 1). Lets a head
+    be trained with extra emphasis on the rows where it is actually used."""
     matrix = np.vstack(
         [np.array([float(getattr(row, name)) for name in feature_names]) for row in train_rows]
     )
@@ -121,11 +124,13 @@ def train_logistic_regression(
     labels = _binary_labels(train_rows)
     weights = np.zeros(matrix.shape[1], dtype=np.float64)
     bias = 0.0
+    sw = np.ones(len(labels)) if sample_weight is None else np.asarray(sample_weight, dtype=np.float64)
+    sw = sw * (len(sw) / sw.sum())
 
     for _ in range(epochs):
         logits = matrix @ weights + bias
         probs = _sigmoid(logits)
-        error = probs - labels
+        error = (probs - labels) * sw
         grad_w = (matrix.T @ error) / len(labels) + l2 * weights
         grad_b = float(np.mean(error))
         weights -= learning_rate * grad_w

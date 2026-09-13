@@ -40,4 +40,4 @@ def test_timed_extract_records_layers_and_live_matches_full(tandem_model_path):
     live_p, live_views = model.predict(live_features)
     assert live_p == full_p
     assert live_views == full_views
-    assert set(live_views) == {"acoustic", "behavioral"}
+    assert {"acoustic", "behavioral"} <= set(live_views)

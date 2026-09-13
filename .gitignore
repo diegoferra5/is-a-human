@@ -42,3 +42,11 @@ venv/
 .env
 .env.*
 .DS_Store
+
+# semantic-layer working files carried over from max-semantic
+analysis/blind/
+analysis/blind_key.json
+analysis/*.csv
+cache/
+resources/challenge-dataset
+transcripts_trimmed/

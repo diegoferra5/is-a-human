@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import sys
 import time
 from dataclasses import dataclass
@@ -163,7 +165,11 @@ def _collect_features(
     show_progress: bool = False,
     heavy: bool = True,
     vad_backend: str | None = None,
+    transcripts_dir: Path | str | None = None,
 ) -> list[CallFeatures]:
+    """transcripts_dir: folder of <anon_id>.json Whisper transcripts. When given,
+    rows carry the semantic head's measurements; otherwise semantic_available=0."""
+    transcripts = Path(transcripts_dir) if transcripts_dir is not None else None
     try:
         total = count_split(split, dataset_root)
     except DatasetError:
@@ -176,6 +182,11 @@ def _collect_features(
     for sample in iter_split(split, root=dataset_root, load_audio=True):
         if limit is not None and len(features) >= limit:
             break
+        transcript_turns = None
+        if transcripts is not None:
+            tpath = transcripts / f"{sample.anon_id}.json"
+            if tpath.exists():
+                transcript_turns = json.loads(tpath.read_text(encoding="utf-8")).get("turns")
         features.append(
             extract_call_features(
                 anon_id=sample.anon_id,
@@ -186,6 +197,7 @@ def _collect_features(
                 sample_rate=sample.sample_rate,
                 heavy=heavy,
                 vad_backend=vad_backend,
+                transcript_turns=transcript_turns,
             )
         )
         progress.update(f"{sample.anon_id} ({sample.label})")

@@ -3,11 +3,18 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import replace
+from time import perf_counter
+from typing import Callable
 
 import numpy as np
 
 from is_a_human.analysis.features import extract_call_features_timed
+from is_a_human.analysis.semantic import extract_semantic_features
 from is_a_human.detect.tandem import TandemModel
+from is_a_human.pipeline import process_call
+
+Transcriber = Callable[[np.ndarray, int, list[tuple[float, float]]], list[dict]]
 
 logger = logging.getLogger("is_a_human.detect")
 
@@ -39,7 +46,16 @@ def detect_from_audio(
     heavy: bool = False,
     transcript_turns: list[dict] | None = None,
     vad_backend: str | None = None,
+    transcribe: Transcriber | None = None,
 ) -> tuple[float, dict[str, float], dict[str, float | None]]:
+    """Fast path first. If the two-head fusion lands inside the gate and the
+    model has a semantic head, transcribe the caller's VAD segments (or use the
+    transcript_turns given) and let the three-head fusion decide."""
+    backend = vad_backend if vad_backend is not None else model.vad_backend
+    started = perf_counter()
+    result = process_call(ch0_caller, ch1_agent, sample_rate, backend=backend)
+    vad_ms = (perf_counter() - started) * 1000
+
     features, timings = extract_call_features_timed(
         anon_id=call_id,
         label="unknown",
@@ -47,9 +63,29 @@ def detect_from_audio(
         ch0_caller=ch0_caller,
         ch1_agent=ch1_agent,
         sample_rate=sample_rate,
+        pipeline_result=result,
         heavy=heavy,
         transcript_turns=transcript_turns,
-        vad_backend=vad_backend if vad_backend is not None else model.vad_backend,
+        vad_backend=backend,
     )
+    timings["vad"] = vad_ms
     probability, views = model.predict(features)
+    timings["gated"] = 0.0
+
+    availability = model.head_availability(features)
+    if model.needs_semantic(probability, availability, views):
+        timings["gated"] = 1.0
+        if transcript_turns is None and transcribe is not None:
+            started = perf_counter()
+            caller_segments = [(seg.start, seg.end) for seg in result.ledger.speech_segments if seg.channel == 0]
+            if not caller_segments:
+                # VAD found nothing: the fast heads are already masked, so the
+                # semantic head is all we have -- give Whisper the whole channel.
+                caller_segments = [(0.0, len(ch0_caller) / sample_rate)]
+            transcript_turns = transcribe(ch0_caller, sample_rate, caller_segments)
+            caller_speech_s = sum(e - s for s, e in caller_segments)
+            semantic = extract_semantic_features(transcript_turns, caller_speech_s=caller_speech_s)
+            features = replace(features, **semantic)
+            timings["semantic"] = (perf_counter() - started) * 1000
+        probability, views = model.predict_full(features)
     return probability, views, timings

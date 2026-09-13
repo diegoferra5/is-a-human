@@ -1,7 +1,6 @@
 {
   "fusion_type": "stacked",
   "vad_backend": "hybrid",
-  "disagree_unsure": 0.1,
   "acoustic": {
     "feature_names": [
       "caller_rms_cv",
@@ -118,90 +117,6 @@
       0.21586137796237273
     ]
   },
-  "semantic": {
-    "feature_names": [
-      "sem_speech_rate",
-      "sem_median_turn_words",
-      "sem_one_word_negation",
-      "sem_bare_turn_rate",
-      "sem_digits_only_turn_rate",
-      "sem_closing_words",
-      "sem_long_turn_rate",
-      "sem_closing_ritual",
-      "sem_max_turn_words",
-      "sem_calls_agent_by_name",
-      "sem_positional_correction",
-      "sem_question_turn_rate"
-    ],
-    "weights": [
-      1.8179881142861645,
-      0.4810352596777353,
-      -0.34049489093750934,
-      0.36113248725815883,
-      -0.6190503329347116,
-      -0.303084254209042,
-      -0.0914018740430734,
-      0.7284208057713777,
-      -0.00874736036104572,
-      0.5647480769507565,
-      0.3539143332665627,
-      0.33320182619908395
-    ],
-    "bias": 0.8173904875615422,
-    "mean": [
-      2.472312703947365,
-      10.446808510638299,
-      0.03108861507234902,
-      0.18183102639384446,
-      0.04408742550505389,
-      23.106382978723403,
-      0.25478978352822046,
-      0.3120567375886525,
-      29.893617021276597,
-      0.3191489361702128,
-      0.3049645390070922,
-      0.0697665865489384
-    ],
-    "std": [
-      0.8195464682269507,
-      12.278924764021307,
-      0.06362786162084158,
-      0.16904257335071593,
-      0.08115329511578812,
-      25.26236853943274,
-      0.25229185047536085,
-      0.46333285024286625,
-      20.24134597592655,
-      0.46614685745120377,
-      0.46039240757780114,
-      0.11765012418644281
-    ]
-  },
-  "fusion3": {
-    "feature_names": [
-      "p_acoustic",
-      "p_behavioral",
-      "p_semantic"
-    ],
-    "weights": [
-      1.1235151736048712,
-      2.221282081536035,
-      1.3578260400086781
-    ],
-    "bias": 0.7410127968652885,
-    "mean": [
-      0.5972054603195698,
-      0.5972397119280892,
-      0.5996733825699293
-    ],
-    "std": [
-      0.3654110110958651,
-      0.3784661719106156,
-      0.37925628141474177
-    ]
-  },
-  "gate_margin": 0.3,
-  "disagree_margin": 0.15,
   "metrics": {
     "acoustic": {
       "val": {
@@ -329,55 +244,7 @@
       "behavioral": 2.4137,
       "bias": 0.5719
     },
-    "disagree_unsure": 0.1,
-    "semantic": {
-      "val": {
-        "accuracy": 0.8732,
-        "f1": 0.8696,
-        "auc": 0.9523
-      },
-      "features_used": [
-        "sem_speech_rate",
-        "sem_median_turn_words",
-        "sem_one_word_negation",
-        "sem_bare_turn_rate",
-        "sem_digits_only_turn_rate",
-        "sem_closing_words",
-        "sem_long_turn_rate",
-        "sem_closing_ritual",
-        "sem_max_turn_words",
-        "sem_calls_agent_by_name",
-        "sem_positional_correction",
-        "sem_question_turn_rate"
-      ],
-      "train_rows_with_transcript": 282
-    },
-    "gate": {
-      "margin": 0.3,
-      "train_oof_gated_fraction": 0.1206,
-      "train_oof_fast_misses": 12,
-      "train_oof_misses_inside_gate": 11
-    },
-    "stacked3": {
-      "val": {
-        "always": {
-          "accuracy": 0.9437,
-          "f1": 0.9444,
-          "auc": 1.0
-        },
-        "gated": {
-          "accuracy": 0.9437,
-          "f1": 0.9444,
-          "auc": 0.9992
-        },
-        "gated_fraction": 0.1549
-      }
-    },
-    "fusion3_weights": {
-      "p_acoustic": 1.1235,
-      "p_behavioral": 2.2213,
-      "p_semantic": 1.3578,
-      "bias": 0.741
-    }
-  }
+    "disagree_unsure": 0.1
+  },
+  "disagree_unsure": 0.1
 }

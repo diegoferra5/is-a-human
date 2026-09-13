@@ -12,7 +12,12 @@ from is_a_human.analysis.behavioral import extract_timing_features
 from is_a_human.analysis.interaction_physics import extract_interaction_physics_features
 from is_a_human.analysis.micro_variation import extract_micro_variation_features
 from is_a_human.analysis.recovery import extract_recovery_features
-from is_a_human.analysis.semantic import extract_semantic_features
+from is_a_human.analysis.semantic import (
+    SEMANTIC_AVAILABLE,
+    SEMANTIC_HEAD_FEATURES,
+    SEMANTIC_ZEROS,
+    extract_semantic_features,
+)
 from is_a_human.dataset.loader import TurnSegment
 from is_a_human.pipeline import PipelineResult, process_call
 
@@ -120,6 +125,22 @@ class CallFeatures:
     caller_agent_echo_correlation: float
     caller_agent_bleed_correlation: float
 
+    # Semantic head (transcript-derived). Defaulted so rows without a
+    # transcript still construct; semantic_available says which case it is.
+    sem_speech_rate: float = 0.0
+    sem_median_turn_words: float = 0.0
+    sem_one_word_negation: float = 0.0
+    sem_bare_turn_rate: float = 0.0
+    sem_digits_only_turn_rate: float = 0.0
+    sem_closing_words: float = 0.0
+    sem_long_turn_rate: float = 0.0
+    sem_closing_ritual: float = 0.0
+    sem_max_turn_words: float = 0.0
+    sem_calls_agent_by_name: float = 0.0
+    sem_positional_correction: float = 0.0
+    sem_question_turn_rate: float = 0.0
+    semantic_available: float = 0.0
+
     def to_dict(self) -> dict:
         return asdict(self)
 
@@ -172,12 +193,17 @@ def acoustic_feature_names() -> tuple[str, ...]:
     )
 
 
+def semantic_feature_names() -> tuple[str, ...]:
+    return SEMANTIC_HEAD_FEATURES
+
+
 def behavioral_feature_names() -> tuple[str, ...]:
     acoustic = set(acoustic_feature_names())
+    semantic = set(SEMANTIC_HEAD_FEATURES) | {SEMANTIC_AVAILABLE}
     return tuple(
         name
         for name in CallFeatures.numeric_field_names()
-        if name != "duration_s" and name not in acoustic
+        if name != "duration_s" and name not in acoustic and name not in semantic
     )
 
 
@@ -260,9 +286,13 @@ def extract_call_features_timed(
     recovery = extract_recovery_features(speech)
     timings["behavioral"] = _elapsed_ms(started)
 
+    semantic = dict(SEMANTIC_ZEROS)
     if transcript_turns:
         started = perf_counter()
-        extract_semantic_features(transcript_turns)
+        # Denominator for speech rate: seconds the caller spoke by the VAD
+        # ledger, never Whisper's own spans (they swallow surrounding silence).
+        caller_speech_s = sum(seg.end - seg.start for seg in speech if seg.channel == 0)
+        semantic = extract_semantic_features(transcript_turns, caller_speech_s=caller_speech_s)
         timings["semantic"] = _elapsed_ms(started)
 
     if heavy:
@@ -287,6 +317,7 @@ def extract_call_features_timed(
         **recovery,
         **micro,
         **interaction,
+        **semantic,
     )
     return features, timings
 

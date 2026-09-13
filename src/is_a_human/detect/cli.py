@@ -17,6 +17,12 @@ def main() -> None:
     parser.add_argument("--dataset-root", type=Path, default=None)
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--output", type=Path, default=DEFAULT_MODEL_PATH)
+    parser.add_argument(
+        "--transcripts-dir",
+        type=Path,
+        default=Path("transcripts"),
+        help="Whisper transcripts <anon_id>.json; enables the semantic head (pass '' to disable)",
+    )
     parser.add_argument("--progress", action="store_true", default=True)
     parser.add_argument("--no-progress", action="store_false", dest="progress")
     parser.add_argument(
@@ -41,11 +47,13 @@ def main() -> None:
         )
         report = REPORT_MD.resolve()
     else:
+        transcripts = args.transcripts_dir if str(args.transcripts_dir) else None
         model = train_tandem(
             dataset_root=args.dataset_root,
             limit=args.limit,
             show_progress=args.progress,
             vad_backend=args.vad_backend,
+            transcripts_dir=transcripts,
         )
         save_tandem(model, args.output)
         report = None
@@ -55,6 +63,15 @@ def main() -> None:
     print(f"fusion_type={model.fusion_type} vad={model.vad_backend}")
     print(f"stacked val auc={stacked.get('auc')} acc={stacked.get('accuracy')}")
     print(f"concat  val auc={concat.get('auc')} acc={concat.get('accuracy')}")
+    sem = model.metrics.get("semantic", {}).get("val", {})
+    s3 = model.metrics.get("stacked3", {}).get("val", {})
+    gate = model.metrics.get("gate", {})
+    if sem:
+        print(f"semantic val auc={sem.get('auc')} acc={sem.get('accuracy')}")
+        print(f"3-head gated val acc={s3.get('gated', {}).get('accuracy')} "
+              f"(always={s3.get('always', {}).get('accuracy')}, gated {s3.get('gated_fraction')})")
+        print(f"gate margin={gate.get('margin')} train-oof gated={gate.get('train_oof_gated_fraction')} "
+              f"misses inside={gate.get('train_oof_misses_inside_gate')}/{gate.get('train_oof_fast_misses')}")
     print(f"saved {args.output}")
     if report is not None:
         print(f"report {report}")
