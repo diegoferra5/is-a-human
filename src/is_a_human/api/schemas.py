@@ -1,4 +1,4 @@
-"""Request/response models for POST /detect (Altur judge contract)."""
+"""Request/response models for POST /detect (the judge contract)."""
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
