@@ -106,8 +106,9 @@ def channel_turns_silero(sig: np.ndarray, sr: int) -> list[tuple[float, float]]:
     return [(seg["start"], seg["end"]) for seg in ts]
 
 
-def extract_turns(path: str | Path, backend: str = "silero") -> dict:
-    """backend="silero" (default, accurate) or "energy" (simple fallback)."""
+def extract_turns(path: str | Path, backend: str = "energy") -> dict:
+    """backend="energy" (default, class-neutral) or "silero" (sharper but
+    class-biased at 8 kHz -> confounds the behavioral view; see EXPLAINED.md)."""
     x, sr = read_wav(path)
     turns = []
     for ch in range(x.shape[1]):

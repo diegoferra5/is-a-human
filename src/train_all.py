@@ -28,18 +28,32 @@ def report(name, y, p):
           f"auc={roc_auc_score(y, p):.3f}  brier={brier_score_loss(y, p):.3f}")
 
 
+def _calls(df):
+    calls = [Call.from_id(r.anon_id, r.duration_s) for _, r in df.iterrows()]
+    y = (df.label == "synthetic").astype(int).values
+    return calls, y
+
+
 def main():
     man = pd.read_csv(MANIFEST)
-    calls = [Call.from_id(r.anon_id, r.duration_s) for _, r in man.iterrows()]
-    y = (man.label == "synthetic").astype(int).values
+    # Hold VAL out entirely. Fit + cross-validate on TRAIN only, then evaluate on
+    # the speaker-disjoint VAL -> the honest preview of the hidden set. (Earlier
+    # this folded over all 353, leaking val into training. See EXPLAINED.md.)
+    tr_calls, ytr = _calls(man[man.split == "train"])
+    va_calls, yva = _calls(man[man.split == "val"])
 
     fusion = Fusion(VIEWS)
-    print(f"training {len(VIEWS)} view(s) on {len(calls)} calls (5-fold OOF)...")
-    oof = fusion.fit(calls, y)
+    print(f"training {len(VIEWS)} view(s) on {len(tr_calls)} TRAIN calls "
+          f"(5-fold CV), holding out {len(va_calls)} VAL...")
+    oof = fusion.fit(tr_calls, ytr)     # CV within train; views refit on train
 
-    print("\n=== honest out-of-fold metrics ===")
-    report("FUSION", y, oof)
-    print("\nsaved models -> models/  (per-view + fusion.pkl)")
+    print("\n=== metrics ===")
+    report("train OOF", ytr, oof)                                   # CV estimate
+    pva = np.array([fusion.proba(c)[0] for c in va_calls])
+    report("VAL held-out", yva, pva)                                # honest number
+    print("\nsaved models -> models/  (per-view + fusion.pkl), trained on TRAIN.")
+    print("NOTE: random CV is still by-call, not by-speaker (no speaker ids) -> "
+          "train OOF is optimistic; trust the VAL row.")
 
 
 if __name__ == "__main__":
