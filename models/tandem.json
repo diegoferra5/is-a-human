@@ -2,6 +2,12 @@
   "fusion_type": "stacked",
   "vad_backend": "hybrid",
   "disagree_unsure": 0.1,
+  "quiet_patient": {
+    "wait_min_s": 1.4,
+    "wait_max_s": 2.0,
+    "rms_cv_max": 0.45,
+    "talkative_turn_min": 24
+  },
   "acoustic": {
     "feature_names": [
       "caller_rms_cv",
@@ -267,9 +273,9 @@
     },
     "stacked": {
       "val": {
-        "accuracy": 0.9577,
-        "f1": 0.9565,
-        "auc": 0.9968
+        "accuracy": 0.9718,
+        "f1": 0.9706,
+        "auc": 0.9976
       },
       "top_separators": []
     },
@@ -330,6 +336,12 @@
       "bias": 0.5719
     },
     "disagree_unsure": 0.1,
+    "quiet_patient": {
+      "wait_min_s": 1.4,
+      "wait_max_s": 2.0,
+      "rms_cv_max": 0.45,
+      "talkative_turn_min": 24
+    },
     "semantic": {
       "val": {
         "accuracy": 0.8732,
@@ -361,13 +373,13 @@
     "stacked3": {
       "val": {
         "always": {
-          "accuracy": 0.9437,
-          "f1": 0.9444,
+          "accuracy": 0.9577,
+          "f1": 0.9577,
           "auc": 1.0
         },
         "gated": {
-          "accuracy": 0.9437,
-          "f1": 0.9444,
+          "accuracy": 0.9577,
+          "f1": 0.9577,
           "auc": 0.9992
         },
         "gated_fraction": 0.1549

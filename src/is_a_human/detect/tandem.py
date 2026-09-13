@@ -40,6 +40,14 @@ DISAGREE_UNSURE = 0.10
 # semantic head would never be consulted exactly when it is needed.
 GATE_MARGIN = 0.30
 DISAGREE_MARGIN = 0.15
+# Quiet-patient gate: wait and tidy energy. Talkative subtype (many caller
+# turns) is overridden to human. Cuts frozen on train-box occupancy; k=24 sits
+# above talkative train-box synths (21–22 hybrid turns). Set talkative_turn_min
+# to 0 to disable.
+QUIET_WAIT_MIN_S = 1.4
+QUIET_WAIT_MAX_S = 2.0
+QUIET_RMS_CV_MAX = 0.45
+TALKATIVE_TURN_MIN = 24
 
 
 def resolve_disagreement(
@@ -60,6 +68,44 @@ def resolve_disagreement(
     return p_behavioral
 
 
+def resolve_talkative_quiet(
+    p_fused: float,
+    wait_s: float,
+    rms_cv: float,
+    caller_segment_count: float,
+    *,
+    wait_min_s: float = QUIET_WAIT_MIN_S,
+    wait_max_s: float = QUIET_WAIT_MAX_S,
+    rms_cv_max: float = QUIET_RMS_CV_MAX,
+    talkative_turn_min: int = TALKATIVE_TURN_MIN,
+) -> float:
+    """Override quiet-patient calls with many caller turns to human.
+
+    Gate is class-agnostic (wait + tidy rms_cv). The expert only fires for the
+    talkative subtype. Sparse-quiet calls keep the fused score. Disable with
+    talkative_turn_min <= 0.
+    """
+    if talkative_turn_min <= 0 or p_fused < 0.5:
+        return p_fused
+    if not (wait_min_s <= wait_s <= wait_max_s):
+        return p_fused
+    if rms_cv >= rms_cv_max:
+        return p_fused
+    if caller_segment_count < talkative_turn_min:
+        return p_fused
+    flipped = 1.0 - p_fused
+    return flipped if flipped < 0.5 else 0.499
+
+
+def _quiet_patient_payload(model: "TandemModel") -> dict:
+    return {
+        "wait_min_s": model.quiet_wait_min_s,
+        "wait_max_s": model.quiet_wait_max_s,
+        "rms_cv_max": model.quiet_rms_cv_max,
+        "talkative_turn_min": model.talkative_turn_min,
+    }
+
+
 @dataclass
 class TandemModel:
     fusion_type: str
@@ -70,6 +116,10 @@ class TandemModel:
     concatenated: TrainedLogistic | None
     metrics: dict
     disagree_unsure: float = DISAGREE_UNSURE
+    quiet_wait_min_s: float = QUIET_WAIT_MIN_S
+    quiet_wait_max_s: float = QUIET_WAIT_MAX_S
+    quiet_rms_cv_max: float = QUIET_RMS_CV_MAX
+    talkative_turn_min: int = TALKATIVE_TURN_MIN
     semantic: TrainedLogistic | None = None
     fusion3: TrainedLogistic | None = None      # fit for the report; not used to decide
     gate_margin: float = GATE_MARGIN
@@ -164,15 +214,26 @@ class TandemModel:
                 p_behavioral=views["behavioral"],
             )
             fused = self.fusion.predict_one(stacked)
-            return (
-                resolve_disagreement(
-                    fused, views["acoustic"], views["behavioral"], self.disagree_unsure
-                ),
-                views,
+            fused = resolve_disagreement(
+                fused, views["acoustic"], views["behavioral"], self.disagree_unsure
             )
+            return self._apply_talkative_quiet(fused, features), views
         if self.concatenated is None:
             raise RuntimeError("concatenated model missing")
-        return self.concatenated.predict_one(features), views
+        fused = self.concatenated.predict_one(features)
+        return self._apply_talkative_quiet(fused, features), views
+
+    def _apply_talkative_quiet(self, fused: float, features: CallFeatures) -> float:
+        return resolve_talkative_quiet(
+            fused,
+            float(features.caller_response_latency_pos_median_s),
+            float(features.caller_rms_cv),
+            float(features.caller_segment_count),
+            wait_min_s=self.quiet_wait_min_s,
+            wait_max_s=self.quiet_wait_max_s,
+            rms_cv_max=self.quiet_rms_cv_max,
+            talkative_turn_min=self.talkative_turn_min,
+        )
 
 
 def _metrics_dict(model: TrainedLogistic, rows: list) -> dict:
@@ -356,6 +417,7 @@ def train_tandem_from_rows(
     if fusion_type == "stacked":
         model.metrics["stacked"]["val"] = _metrics_from_predict(model, val_rows)
         model.metrics["disagree_unsure"] = DISAGREE_UNSURE
+        model.metrics["quiet_patient"] = _quiet_patient_payload(model)
 
     # ---- semantic head + three-head fusion, only when transcripts exist -----
     sem_train = [r for r in train_rows if float(getattr(r, "semantic_available", 0.0)) >= 1.0]
@@ -444,6 +506,7 @@ def save_tandem(model: TandemModel, path: Path | str = DEFAULT_MODEL_PATH) -> Pa
         "fusion_type": model.fusion_type,
         "vad_backend": model.vad_backend,
         "disagree_unsure": model.disagree_unsure,
+        "quiet_patient": _quiet_patient_payload(model),
         "acoustic": model.acoustic.to_dict(),
         "behavioral": model.behavioral.to_dict(),
         "fusion": model.fusion.to_dict() if model.fusion else None,
@@ -462,6 +525,7 @@ def load_tandem(path: Path | str = DEFAULT_MODEL_PATH) -> TandemModel:
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
     fusion_payload = payload.get("fusion")
     concat_payload = payload.get("concatenated")
+    quiet = payload.get("quiet_patient") or {}
     return TandemModel(
         fusion_type=payload["fusion_type"],
         vad_backend=payload.get("vad_backend", DEFAULT_VAD_BACKEND),
@@ -475,6 +539,10 @@ def load_tandem(path: Path | str = DEFAULT_MODEL_PATH) -> TandemModel:
         fusion3=TrainedLogistic.from_dict(payload["fusion3"]) if payload.get("fusion3") else None,
         gate_margin=float(payload.get("gate_margin", GATE_MARGIN)),
         disagree_margin=float(payload.get("disagree_margin", DISAGREE_MARGIN)),
+        quiet_wait_min_s=float(quiet.get("wait_min_s", QUIET_WAIT_MIN_S)),
+        quiet_wait_max_s=float(quiet.get("wait_max_s", QUIET_WAIT_MAX_S)),
+        quiet_rms_cv_max=float(quiet.get("rms_cv_max", QUIET_RMS_CV_MAX)),
+        talkative_turn_min=int(quiet.get("talkative_turn_min", TALKATIVE_TURN_MIN)),
     )
 
 
