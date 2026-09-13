@@ -1,0 +1,50 @@
+# Challenge dataset — licensed for the hackathon only, do not redistribute
+/dataset/
+resources/challenge-dataset/
+resources/audio/
+/audio/
+*.zip
+*.wav
+
+# Original challenge brief (source PDF + raw text dump) — local only
+kb/source/
+
+# Local working context, not for the public repo
+CLAUDE.md
+
+# Transcripts — the agent says the sponsor's name aloud in every call
+transcripts/
+*.transcript.json
+
+# Matplotlib cache
+.matplotlib/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+*.egg-info/
+
+# Models / large artifacts
+*.pt
+*.pth
+*.onnx
+*.joblib
+*.pkl
+
+# Env & OS
+.env
+.env.*
+.DS_Store
+
+# verbatim transcript excerpts — dataset content, never commit
+analysis/blind/
+analysis/blind_key.json
+
+# per-call feature tables carry anon_id + label -- derived dataset content
+analysis/*.csv
+# local caches and dataset copies
+cache/
+resources/

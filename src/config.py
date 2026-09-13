@@ -2,11 +2,12 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-DATA = ROOT / "data"                 # symlink -> ../hackmty26-main
-AUDIO = DATA / "audio"               # populated once altur-challenge-audio.zip is unzipped
+DATA = ROOT / "dataset"              # the challenge dataset clone (gitignored)
+AUDIO = DATA / "audio"               # populated once the audio release zip is unzipped
 TURNS = DATA / "turns"
 MANIFEST = DATA / "manifest.csv"
 CACHE = ROOT / "cache"
+TRANSCRIPTS = ROOT / "transcripts"   # whisper output, {call_id, turns:[{channel,start,end,text}]}
 MODELS = ROOT / "models"
 
 # Channel convention from the challenge README:
