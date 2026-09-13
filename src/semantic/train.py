@@ -1,7 +1,7 @@
 """Train the semantic view on the train split and save it.
 
     python -m src.semantic.train            # all 12 features
-    python -m src.semantic.train --safe     # only the 5 that never count words
+    python -m src.semantic.train --safe     # compact 5-feature variant -> semantic_safe.pkl
 
 Prints the learned weights and a worked example so the model is inspectable.
 Val is not touched here.
@@ -63,7 +63,7 @@ def main():
     for name, val, contrib in view.explain(calls[i])[:5]:
         print(f"  {contrib:+6.2f}  {name} = {val:g}")
 
-    print(f"\nsaved {ROOT / 'models' / 'semantic.pkl'}")
+    print(f"\nsaved {view.pkl}")
 
 
 if __name__ == "__main__":

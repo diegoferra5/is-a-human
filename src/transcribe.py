@@ -53,7 +53,11 @@ def transcribe_channel(audio: np.ndarray, model: str) -> list[dict]:
     ]
 
 
-def transcribe_call(wav_path: Path, out_dir: Path, channels: list[int], model: str) -> dict:
+def transcribe_call(wav_path: Path, out_dir: Path | None, channels: list[int],
+                    model: str) -> dict:
+    """Transcribe one call. Writes <out_dir>/<call_id>.json unless out_dir is
+    None -- the serving path passes None so that live requests do not drop
+    partial transcripts into the training corpus."""
     call_id = wav_path.stem
     turns = []
     for ch in channels:
@@ -63,10 +67,11 @@ def transcribe_call(wav_path: Path, out_dir: Path, channels: list[int], model: s
     turns.sort(key=lambda t: t["start"])
 
     out = {"call_id": call_id, "turns": turns}
-    out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / f"{call_id}.json").write_text(
-        json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8"
-    )
+    if out_dir is not None:
+        out_dir.mkdir(parents=True, exist_ok=True)
+        (out_dir / f"{call_id}.json").write_text(
+            json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8"
+        )
     return out
 
 

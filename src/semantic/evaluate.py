@@ -14,6 +14,8 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import roc_auc_score
 
+from src.call import Call
+from src.config import CALLER_CH
 from src.semantic.features import extract, FEATURE_NAMES
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -27,7 +29,9 @@ def load(split: str = "train") -> pd.DataFrame:
         p = ROOT / "transcripts" / f"{r.anon_id}.json"
         if not p.exists():
             continue
-        f = extract(json.loads(p.read_text())["turns"])
+        from src.views.semantic_view import SemanticView
+        caller_s = SemanticView.caller_speech_seconds(Call.from_id(r.anon_id, r.duration_s))
+        f = extract(json.loads(p.read_text())["turns"], caller_speech_s=caller_s)
         f.update(call=r.anon_id, y=int(r.label == "synthetic"))
         rows.append(f)
     return pd.DataFrame(rows)
@@ -45,18 +49,27 @@ def main():
         pooled = np.sqrt((h.var(ddof=1) + s.var(ddof=1)) / 2) or 1e-9
         d = (s.mean() - h.mean()) / pooled
         auc = roc_auc_score(df.y, df[name])
+        # Raw AUC, direction included: > 0.5 means the synthetic group scores
+        # higher, < 0.5 the human group. Reporting max(auc, 1-auc) was dropped
+        # because it turns a null feature into a 0.52-0.56 that reads like a
+        # weak signal; under label permutation a null feature lands in
+        # 0.44-0.56 (95% band), so anything inside that band is nothing.
         out.append(dict(feature=name, human=h.mean(), synthetic=s.mean(),
-                        d=d, auc=max(auc, 1 - auc), raw_auc=auc))
-    res = pd.DataFrame(out).sort_values("auc", ascending=False)
+                        d=d, auc=auc, strength=abs(auc - 0.5)))
+    res = pd.DataFrame(out).sort_values("strength", ascending=False)
 
+    NULL_BAND = (0.44, 0.56)      # 95% band of a label-permuted feature
     print(f"{'feature':<32}{'human':>9}{'synth':>9}{'d':>8}{'AUC':>7}   verdict")
+    print(f"{'':<32}{'':>9}{'':>9}{'':>8}{'':>7}   (null band {NULL_BAND[0]}-{NULL_BAND[1]})")
     for _, r in res.iterrows():
-        mark = "KEEP" if r.auc >= 0.60 else ("weak" if r.auc >= 0.56 else "drop")
-        arrow = "syn>" if r.raw_auc > 0.5 else "hum>"
+        if r.strength >= 0.10:                mark = "KEEP"
+        elif NULL_BAND[0] <= r.auc <= NULL_BAND[1]: mark = "null"
+        else:                                 mark = "weak"
+        arrow = "syn>" if r.auc > 0.5 else "hum>"
         print(f"{r.feature:<32}{r.human:9.3f}{r.synthetic:9.3f}{r.d:+8.2f}{r.auc:7.3f}   {mark} {arrow}")
 
-    keep = res[res.auc >= 0.60].feature.tolist()
-    print(f"\n{len(keep)} features at AUC >= 0.60")
+    keep = res[res.strength >= 0.10].feature.tolist()
+    print(f"\n{len(keep)} features with |AUC - 0.5| >= 0.10")
     (ROOT / "analysis").mkdir(exist_ok=True)
     res.to_csv(ROOT / "analysis" / "feature_scores.csv", index=False)
     df.to_csv(ROOT / "analysis" / "features_train.csv", index=False)

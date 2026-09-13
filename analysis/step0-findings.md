@@ -31,28 +31,22 @@ explained by call duration — it survives inside every length quartile (dilemma
 
 ## Why: synthetic callers crowd the agent out
 
-Same call length, same number of caller turns — but the synthetic caller says far more.
+The synthetic caller produces far more words per second of speech (1.51 vs 2.48 by the
+shipped VAD, AUC 0.833) and, by the dataset's own turn files, takes *fewer* turns (21.9
+vs 15.0). Longer, denser turns leave the agent fewer openings, so the script advances
+less far and the late beats never fire.
 
-| | caller turns | caller words | words/turn | agent turns | agent words |
-|---|---|---|---|---|---|
-| human | 14.1 | 69.6 | 5.1 | 26.7 | 265.5 |
-| synthetic | 14.5 | 107.2 | 7.4 | 22.1 | 213.5 |
-
-54% more words in the same 88 s of talk time. The agent gets ~4.5 fewer turns and the
-script advances less far, so the late traps never fire.
+*An earlier version of this section claimed "same turn count (14), same talk time (88 s)"
+from Whisper segment spans and warned that the word gap might be an ASR artefact. Both
+were wrong: Whisper spans include surrounding silence (2.2× true duration) and merge
+turns, and the agent channel — the same TTS voice on every call — shows identical
+words-per-second across groups, which rules out the ASR hearing the two groups
+differently. See `analysis/facts.md` F3.*
 
 ## Consequences for the layer
 
 1. **"The trap fired" must never be a feature.** It leaks the label without measuring the
-   caller at all, and it leaks for a reason that may not survive a different engine.
-2. **Condition on the trap firing.** Features are only computed over calls where the beat
-   is present, and every feature carries its own denominator.
-3. **Verbosity is a real candidate** (5.1 vs 7.4 words per turn) — but see the warning.
-
-## Warning: the word counts may be an ASR artifact
-
-Whisper transcribes clean synthetic speech more completely than noisy human phone audio.
-Some of the 54% word gap could be transcription quality, not talkativeness. Before using
-any word-count feature, check it against turn *durations* from the audio, which do not
-depend on the transcript. Caller talk time is nearly identical (87.6 s vs 88.4 s), which
-is itself a reason for suspicion.
+   caller, for a reason that may not survive a different engine.
+2. **Every feature is a property of the caller's own turns** — a rate, a per-call flag on
+   what the caller said — never a presence flag on the agent's script.
+3. **Speech density is real and is the layer's main signal.** It ships as `speech_rate`.

@@ -31,13 +31,14 @@ import pickle
 import numpy as np
 
 from src.call import Call
-from src.config import AGENT_CH, CALLER_CH, MODELS, TRANSCRIPTS
+from src.config import AGENT_CH, CACHE, CALLER_CH, MODELS, TRANSCRIPTS
 from src.semantic.features import AGENT_DEPENDENT, extract
 from src.views.base import View
 
 # The twelve features that separated the classes on train (AUC >= 0.60),
 # strongest first. Measured in src/semantic/evaluate.py.
 FEATURES = [
+    "speech_rate",              # 0.885 alone -- the layer's main signal
     "median_turn_words",        # 0.784
     "one_word_negation",        # 0.776
     "bare_turn_rate",           # 0.762
@@ -49,19 +50,23 @@ FEATURES = [
     "max_turn_words",           # 0.682
     "calls_agent_by_name",      # 0.672
     "question_turn_rate",       # 0.635
-    "offers_to_repeat",         # 0.633
+    # offers_to_repeat was here at 0.633. A review showed the score came
+    # entirely from the phrase "con eso" ("no, con eso esta bien" -- declining
+    # help). With that removed it scores 0.537, i.e. nothing. Dropped.
 ]
 
-# Seven of those twelve count words, and Whisper transcribes clean synthetic
-# audio more completely than a human on a noisy line -- so part of their signal
-# may be the ASR rather than the speaker. These five never count a word.
-# 12 features: AUC 0.898 / 80.8% acc.  These 5: AUC 0.860 / 78.4% acc.
+# A smaller variant. It was originally the features that "never count a word",
+# on the worry that Whisper heard the two groups differently. A review killed
+# that worry: the agent is the same TTS voice on every call and its words per
+# second are identical across groups, so the ASR is not the difference. The
+# list is kept as a compact alternative -- speech rate plus the four
+# behaviour features -- not as a safety net.
 SAFE_FEATURES = [
+    "speech_rate",
     "positional_correction",
     "closing_ritual",
     "calls_agent_by_name",
     "question_turn_rate",
-    "offers_to_repeat",
 ]
 
 
@@ -69,12 +74,20 @@ class SemanticView(View):
     name = "semantic"
 
     def __init__(self, safe_only: bool = False):
-        """safe_only: drop every feature that counts words. Costs ~4 points of
-        AUC on train; may well pay for itself on the hidden set, where the
-        recording path and ASR conditions are not ours."""
+        """safe_only: the compact 5-feature variant (see SAFE_FEATURES).
+        Saves to and loads from models/semantic_safe.pkl."""
         self.features = SAFE_FEATURES if safe_only else FEATURES
+        # Separate files so `train --safe` cannot silently replace the full
+        # model. The view *name* stays "semantic" -- it is the fusion's key.
+        self.pkl = MODELS / ("semantic_safe.pkl" if safe_only else "semantic.pkl")
         self.model = None
-        self._cache: dict[str, np.ndarray] = {}
+        # Univariate direction of each feature on the training data (+1 if the
+        # synthetic mean is higher). Kept so explain() can refuse to show a
+        # weight whose sign the marginal statistics contradict.
+        self.direction: dict[str, int] = {}
+        # Keyed by (anon_id, feature set): the same call under a different
+        # feature list is a different vector, and load() may swap the list.
+        self._cache: dict[tuple, np.ndarray] = {}
 
     # ---- STEP 1: get the transcript ---------------------------------------
     def _transcript(self, call: Call) -> list[dict]:
@@ -99,16 +112,44 @@ class SemanticView(View):
         channels = [CALLER_CH]
         if AGENT_DEPENDENT & set(self.features):
             channels.append(AGENT_CH)
-        return transcribe_call(call.audio_path, TRANSCRIPTS,
+        # out_dir=None: never write a live request's transcript into the
+        # training corpus. It would be caller-channel-only and would poison
+        # any later training run that globs transcripts/.
+        return transcribe_call(call.audio_path, None,
                                channels=channels, model=MODEL)["turns"]
 
     # ---- STEP 2: transcript -> feature vector -----------------------------
+    @staticmethod
+    def caller_speech_seconds(call: Call) -> float:
+        """Seconds the caller actually spoke, by the ENERGY VAD, cached by id.
+
+        Not Call.turns(): that is Silero, and Silero at 8 kHz under-detects
+        human phone speech by about 25% while over-counting the TTS caller
+        (measured against dataset/turns: human 0.75x truth, synthetic 1.00x,
+        and lowering the threshold widens the gap). A class-biased denominator
+        would turn speech_rate into a VAD artefact. The energy VAD over-counts
+        both classes by the same ~1.25x, so the ratio is honest: AUC 0.833
+        against 0.760 with Silero and 0.885 with the dataset's own turns.
+        """
+        from src.vad import extract_turns
+        cache = CACHE / "vad_turns_energy"
+        cache.mkdir(parents=True, exist_ok=True)
+        f = cache / f"{call.anon_id}.json"
+        if f.exists() and f.stat().st_size > 0:
+            turns = json.loads(f.read_text())["turns"]
+        else:
+            d = extract_turns(call.audio_path, backend="energy")
+            f.write_text(json.dumps(d))
+            turns = d["turns"]
+        return sum(t["end"] - t["start"] for t in turns if t["channel"] == CALLER_CH)
+
     def _features(self, call: Call) -> np.ndarray:
-        if call.anon_id not in self._cache:
-            d = extract(self._transcript(call))
-            self._cache[call.anon_id] = np.array(
-                [d[k] for k in self.features], dtype=np.float32)
-        return self._cache[call.anon_id]
+        key = (call.anon_id, tuple(self.features))
+        if key not in self._cache:
+            caller_s = self.caller_speech_seconds(call)
+            d = extract(self._transcript(call), caller_speech_s=caller_s)
+            self._cache[key] = np.array([d[k] for k in self.features], dtype=np.float32)
+        return self._cache[key]
 
     # ---- STEP 3: fit ------------------------------------------------------
     @staticmethod
@@ -128,17 +169,25 @@ class SemanticView(View):
         # our train split's 60/40 class ratio as a standing bias toward
         # "synthetic" -- but val is 47.9% synthetic and the judging set's
         # balance is unknown, so that bias is an assumption we cannot justify.
-        # Dropping it costs nothing in AUC (0.898 -> 0.899) and about a point of
-        # train accuracy, which was only ever the free advantage of matching the
-        # train prior.
+        # Balanced vs unweighted: AUC 0.899 vs 0.898, i.e. nothing; it gives
+        # up about a point of train accuracy, which was only ever the free
+        # advantage of matching the train prior.
+        #
+        # C=0.1 (default is 1.0): several features are correlated (|r| up to
+        # 0.70), and at C=1.0 three of the small weights had undetermined sign
+        # under bootstrap. Stronger shrinkage steadies them; grouped-CV AUC is
+        # unchanged to +0.006.
         return make_pipeline(
             StandardScaler(),
-            LogisticRegression(max_iter=2000, class_weight="balanced"))
+            LogisticRegression(max_iter=2000, class_weight="balanced", C=0.1))
 
     def fit(self, calls: list[Call], y: np.ndarray) -> None:
         X = np.array([self._features(c) for c in calls])
+        y = np.asarray(y)
         self.model = self.make_pipeline()
         self.model.fit(X, y)
+        diff = X[y == 1].mean(axis=0) - X[y == 0].mean(axis=0)
+        self.direction = {f: int(np.sign(d)) for f, d in zip(self.features, diff)}
         self._save()
 
     def proba(self, call: Call) -> float:
@@ -154,6 +203,13 @@ class SemanticView(View):
         Contribution is the standardised value times its weight, so a positive
         number is evidence for synthetic. This is the whole reason for keeping
         the classifier linear.
+
+        A feature is left out when the sign of its fitted weight contradicts
+        its univariate direction on the training data. That happens to small
+        weights on correlated features (a suppressor effect), and showing it
+        would tell a reader "many short turns -> synthetic" while the marginal
+        table says the opposite. The prediction still uses every feature;
+        only the explanation is filtered.
         """
         if self.model is None:
             raise RuntimeError("SemanticView is not fitted")
@@ -161,17 +217,22 @@ class SemanticView(View):
         scaler, clf = self.model[0], self.model[-1]
         z = scaler.transform(x.reshape(1, -1))[0]
         contrib = z * clf.coef_[0]
-        return sorted(zip(self.features, x, contrib),
-                      key=lambda t: abs(t[2]), reverse=True)
+        rows = [(f, float(v), float(c))
+                for f, v, c, w in zip(self.features, x, contrib, clf.coef_[0])
+                if self.direction.get(f, 0) == 0 or np.sign(w) == self.direction[f]]
+        return sorted(rows, key=lambda t: abs(t[2]), reverse=True)
 
     # ---- persistence ------------------------------------------------------
     def _save(self):
         MODELS.mkdir(exist_ok=True)
-        with open(MODELS / f"{self.name}.pkl", "wb") as f:
-            pickle.dump({"model": self.model, "features": self.features}, f)
+        with open(self.pkl, "wb") as f:
+            pickle.dump({"model": self.model, "features": self.features,
+                         "direction": self.direction}, f)
 
     def load(self) -> "SemanticView":
-        with open(MODELS / f"{self.name}.pkl", "rb") as f:
+        with open(self.pkl, "rb") as f:
             d = pickle.load(f)
         self.model, self.features = d["model"], d["features"]
+        self.direction = d.get("direction", {})
+        self._cache.clear()          # vectors built under another feature list are stale
         return self

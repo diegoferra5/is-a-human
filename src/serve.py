@@ -20,12 +20,12 @@ from src.call import Call
 from src.fusion import Fusion
 from src.views.behavioral_view import BehavioralView
 # from src.views.acoustic_view import AcousticView
-# from src.views.semantic_view import SemanticView
+from src.views.semantic_view import SemanticView
 
 app = FastAPI(title="is-a-human detector")
 
 # must match the VIEWS list used in training
-VIEWS = [BehavioralView()]
+VIEWS = [BehavioralView(), SemanticView()]
 fusion = Fusion(VIEWS).load()
 
 

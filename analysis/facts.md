@@ -1,103 +1,116 @@
 # Semantic layer — what we know, and how we know it
 
-All numbers: **train split only, 282 calls**. Val (71) untouched.
-Terminology: "the agent" = the bank's scripted AI, channel 1. "The caller" = the one we
-classify, channel 0.
+Numbers are **train split, 282 calls** (113 human, 169 synthetic) unless marked val.
+"The agent" = the bank's scripted AI, channel 1. "The caller" = the one we classify,
+channel 0. Model results and the val score live in `src/semantic/RESULTS.md`; this file is
+the evidence behind each claim.
 
 ---
 
-## CONFIRMED — measured on all 282 train calls
+## CONFIRMED
 
 ### F1. The agent runs the same script on every call
 Identical opening line word-for-word in all 353 calls, same agent name, same question set.
 Beat order varies in the middle and beats are often skipped, but `ask_ref` precedes
 `confirm_ref` in 94% of calls where both fire.
-**How:** `src/semantic/step0_script_check.py`, 282 calls.
-**So:** deterministic phrase matching will generalize. Never match on position.
+**How:** `src/semantic/step0_script_check.py`.
+**So:** deterministic phrase matching generalises. Never match on position.
 
-### F2. The traps fire more often on human callers
+### F2. The script's later beats fire more often on human callers
 | beat | human | synthetic |
 |---|---|---|
 | forced choice | 85.8% | 71.0% |
 | confirm reference | 87.6% | 68.6% |
 | altered read-back | 81.4% | 52.1% |
 
-Not explained by call duration — the gap survives inside every length quartile.
-**How:** same script; length control by duration quartile.
-**So:** *"did the trap fire"* can never be a feature. It leaks the label without measuring
-the caller. Every feature must be conditioned on the trap having fired, and carry its own
-denominator.
+Survives inside every duration quartile, so it is not call length.
+**So:** *"did the trap fire"* can never be a feature — it encodes the label without
+measuring the caller. Every shipped feature is a rate or a per-call property of the
+caller's own turns, not a presence flag on the agent's script.
 
-### F3. Synthetic callers produce 54% more words in the same talk time
-Same call length, same turn count (14), same caller talk time (88 s), but 107 words vs 70.
-The agent gets ~4.5 fewer turns and 52 fewer words — which is *why* F2 happens.
-**How:** word and duration counts over 282 calls.
-**CAUTION:** may be an ASR artifact. Whisper transcribes clean synthetic audio more
-completely than noisy human phone audio. Identical talk *time* with different word counts
-is exactly what an ASR bias would look like. **Do not ship a word-count feature until it is
-checked against audio-derived durations.**
-
-### F4. The altered read-back separates the two groups — in the opposite direction
-The agent states the reference number, then later repeats it altered by one digit.
-Of the calls where this fires (92 human / 88 synthetic):
-
-| caller reaction | human | synthetic | gap |
+### F3. The synthetic caller talks denser — and it is real, not the ASR
+| | human | synthetic | AUC |
 |---|---|---|---|
-| confirms the wrong number | 35.9% | 20.5% | **+15.4** |
-| objects / corrects | 22.8% | 37.5% | **-14.7** |
-| restates a number | 12.0% | 8.0% | +4.0 |
-| other | 28.3% | 33.0% | -4.7 |
-| silent | 1.1% | 1.1% | 0.0 |
+| caller words per second of VAD-measured speech | 1.51 | 2.48 | **0.833** |
+| caller VAD turn count (dataset turn files) | 21.9 | 15.0 | 0.767 |
+| caller VAD talk time (s) | 43.1 | 38.8 | 0.576 |
+| **agent** words per second of VAD speech | 3.29 | 3.25 | 0.534 |
 
-**The human accepts the wrong number. The synthetic catches it.**
-Mechanism: the LLM holds the number in its context window with perfect recall. The human
-invented that number two minutes ago, is on a phone, and is not tracking it.
-**Why this should generalize:** it detects the caller for being *too good*, not for being
-clumsy. Perfect context recall is a property of every LLM, independent of which TTS or
-which model — so it should survive unseen engines.
-**How:** digit runs >=6 extracted from agent turns, first vs later, near-miss = altered;
-caller's next 2 turns classified by regex. 180 calls.
-**NOT YET VERIFIED:** the "objects" regex includes `\bno\b`, very common in Spanish, so
-part of that 37.5% may be noise. 30% falls into "other", meaning the rules are crude.
-Needs a hand-audit of ~30 events before this number is quotable.
+The last row is the control. The agent is the same TTS voice on every call, recorded
+through the same path. If Whisper under-transcribed the human-call recordings, the agent's
+rate would drop on those calls too. It does not move. **The word gap is caller behaviour.**
+**How:** review of this layer, using `dataset/turns/` (audio-derived) as the denominator;
+the shipped feature uses the behavioral view's VAD (0.833; 0.885 with the dataset's turns).
+**So:** `speech_rate` is the layer's strongest feature and its backbone.
+
+*Earlier versions of this file measured "talk time" and "turn count" from Whisper segment
+spans and concluded they were equal across groups (88 s, 14 turns). Whisper spans include
+the silence around speech — 2.2× the true duration — and its segmentation merges turns.
+Both numbers were wrong; both are now taken from the VAD.*
+
+### F4. With speech rate controlled, the behaviour features are an increment of about +0.08 AUC
+| feature | AUC alone | residual AUC after `speech_rate` |
+|---|---|---|
+| `positional_correction` | 0.669 | ~0.51 |
+| `closing_ritual` | 0.685 | ~0.53 |
+| `calls_agent_by_name` | 0.672 | ~0.52 |
+| `question_turn_rate` | 0.635 | ~0.72 |
+
+Jointly they lift the model from 0.833 (`speech_rate` alone) to 0.914 (all 12). No single
+one adds more than +0.02 on its own.
+**How:** review; each feature regressed on `speech_rate`, AUC of the residual.
+**So:** they are worth shipping — and they are the part a judge can *see* in a transcript —
+but density is the mechanism, precision and politeness are the increment.
+
+### F5. The altered read-back separates the groups by *how* the caller corrects, not whether
+The agent misreads the reference number. Both groups notice at about the same rate. The
+synthetic caller names the position ("termina en 06, no 05", "el último es 5"); the human
+says "está mal" and re-dictates the whole number.
+`positional_correction`: **15.9% human vs 49.7% synthetic**, AUC 0.669, after two rounds of
+hand-audit (dates like "el primero de septiembre" and card statements like "mi tarjeta la
+que termina en 5510" removed; cue must sit next to a run of ≤ 2 digits).
+**Mechanism:** the model holds the exact string in its context and can diff it.
+
+### F6. The synthetic caller is more polite and attentive than a person on a service call
+| feature | human | synthetic |
+|---|---|---|
+| `closing_ritual` — full goodbye in the last 3 turns | 4.4% | 41.4% |
+| `calls_agent_by_name` — uses the agent's name, said once in the greeting | 10.6% | 45.0% |
+| `one_word_negation` — turns that are a single word | 10.5% | 2.7% |
 
 ---
 
-## WEAK — measured, but too small to carry anything
+## WEAK — measured, kept out
 
-### F5. The forced choice barely separates
-"¿Es sobre su cuenta A o su B?" — fired in 94 human / 117 synthetic calls.
-Largest single gap 7.1 points (picks one: 48.9% vs 41.9%).
-Combining hedge + both + neither into one "did not commit" feature: **5.4% human vs 16.2%
-synthetic**, a 3x ratio but only 11 human / 19 synthetic calls.
-**So:** keep as one small feature, not as a centerpiece. 45% of answers landed in
-"off-topic" for both groups, which means the rules are bad, not that callers are off topic.
+- `grants_permission_on_interrupt` and `checks_line_alive`: 0/113 humans vs 16/169
+  synthetic. Perfectly one-sided (Fisher p≈0.0006) but too rare to carry weight.
+- `contrast_correction` ("X, no Y"): 0.9% vs 13.6%, AUC 0.564. Same story.
+- The forced choice ("¿cuenta A o crédito B?"): 7-point gap. Nothing.
 
 ---
 
-## DISPROVEN / RETRACTED
+## RETRACTED
 
-### R1. "One of the two products in the forced choice does not exist"
-No evidence. Invented. The agent introduces both products unprompted (195/216 and 206/215
-calls), but 21 and 9 callers respectively raise them first, so some personas do hold them.
-We have no product catalogue and cannot check.
-**Renamed** to `forced_choice`. Detection value does not depend on the products being fake
-— it depends on how the caller handles a question that presupposes something about them.
-
-### R2. "The digit trap is too rare to use (19% of calls)"
-Wrong measurement. 19% was the rate of the literal phrase "es correcto". The altered
-read-back itself occurs in **81% of human and 52% of synthetic calls** — see F4.
-
-### R3. "A human corrects the wrong digit, an LLM agreeably confirms it"
-The stated hypothesis for this whole layer. **Measured and reversed** — see F4.
+- **"One of the two products does not exist."** Invented. The agent introduces both
+  products unprompted (195/216, 206/215), but 21 and 9 callers raise them first. No
+  catalogue to check. Renamed `forced_choice`.
+- **"The digit trap is rare (19%)."** That was the phrase "es correcto"; the read-back
+  itself is in 81% / 52% of calls (F2).
+- **"A human corrects the wrong digit; a language model confirms it."** Both groups accept
+  the wrong read-back at the same low rate. See F5 for what actually differs.
+- **"Whisper may be inflating the synthetic word counts."** See F3 — the agent channel
+  disproves it. This worry drove the original "safe features" split; that split is now
+  just a compact variant.
+- **"The synthetic caller offers to repeat (30% vs 3.5%)."** The regex scored on *con eso*
+  ("no, con eso está bien" — declining help). Without it: null. Dropped.
+- **"Human and synthetic callers have the same talk time and turn count."** Whisper-span
+  artefact. VAD says 21.9 vs 15.0 turns.
 
 ---
 
-## Open questions
+## Open
 
-- Is F3 real behaviour or Whisper bias? Check against audio-derived turn durations.
-- What is in the 30% "other" bucket at the read-back, and the 45% "off-topic" bucket at the
-  forced choice? Those are the largest unexplained groups in both probes.
-- The brief says the agent "asks about things that do not exist." We have not located that
-  moment in the script. The forced choice was a guess and it did not hold up.
-- Does F4 survive a hand-audit of 30 events?
+- Behavioral view fold leakage: fusion train OOF 0.992 vs val 0.960; semantic shows no gap.
+- A better VAD lifts `speech_rate` (0.833 → 0.885 with dataset-quality turns).
+- Persona overlap train↔val (19 of 25 groups): val understates the drop on the hidden set.
+- The brief says the agent "asks about things that do not exist". Not located in the script.

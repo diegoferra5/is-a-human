@@ -30,41 +30,45 @@ def norm(s: str) -> str:
 # echoing their own card number. Now a digit must appear within ~20 chars.
 _POS_CUE = (r"termina (?:en|con)|al final|ultim[oa]s?|primer(?:os?)? digitos?|penultim|"
             r"en lugar de|en vez de|despues del|antes del|de en medio|el que sigue")
+# A correction names a position and one or two digits ("termina en 06", "el
+# ultimo es 5"). A card statement names four ("termina en 5510"). Requiring a
+# run of at most two digits next to the cue separates them.
+_SHORT_RUN = r"(?<!\d)\d{1,2}(?!\d)"
 POSITIONAL = re.compile(
-    rf"(?:{_POS_CUE})[^.?!]{{0,20}}\d|\d[^.?!]{{0,20}}(?:{_POS_CUE})", re.I)
-# "mi tarjeta termina en 5510" is the caller stating their own card, not correcting
-# a misread. Second audit pass: these were the only remaining false positives.
-POS_NOT_A_CORRECTION = re.compile(r"(?:tarjeta|cuenta)\s+(?:que\s+)?termina", re.I)
+    rf"(?:{_POS_CUE})[^.?!]{{0,20}}{_SHORT_RUN}|{_SHORT_RUN}[^.?!]{{0,20}}(?:{_POS_CUE})",
+    re.I)
+# "mi tarjeta la que termina en 5510" / "la de credito, la que termina en 2246":
+# the caller stating their own card. Third audit pass -- the earlier guard
+# required "tarjeta" directly before "termina" and missed every one of these.
+POS_NOT_A_CORRECTION = re.compile(r"(?:tarjeta|cuenta)\b[^.?!]{0,25}termina", re.I)
 # §5  explicit "X, not Y" contrast
-CONTRAST = re.compile(r"\bno\b[^.?!]{0,25}\bsino\b|,\s*no\s+\d|\bes\b[^.?!]{0,15}\bno\b\s+\d", re.I)
+CONTRAST = re.compile(r",\s*no\s+\d|\bes\b[^.?!]{0,15}\bno\b\s+\d", re.I)
 
 # §15 checking the line is alive
-LINE_ALIVE = re.compile(r"\bbueno\b\s*\?|sigue (ahi|alli)|me escucha|me oye|"
-                        r"\bhola\b\s*\?|esta ahi|sigues ahi|me copia", re.I)
+LINE_ALIVE = re.compile(r"\bbueno\b\s*\?|sigue (ahi|alli)|me escucha|\bhola\b\s*\?", re.I)
 
 # §13 granting permission after being interrupted
 PERMISSION = re.compile(r"\badelante\b|sin problema|no hay problema|no se preocupe|"
                         r"claro que si|por supuesto|dime|digame|si claro", re.I)
 
 # §24 offering to repeat / checking if more is needed
+# Review finding: "con eso" carried this whole feature (41 of the matches) and
+# almost always meant "no, con eso esta bien" -- declining help, the opposite
+# of offering to repeat. Removed. What is left is the literal offer.
 OFFERS = re.compile(r"(quiere|gusta|necesita|desea)[^.?!]{0,20}(repit|repet)|"
-                    r"(lo|la|se lo) repito|repito|necesita algo mas|algo mas\s*\?|"
-                    r"le sirve|es suficiente|con eso", re.I)
+                    r"(lo|la|se lo) repito|\brepito\b", re.I)
 
 # §6  a full closing ritual rather than "gracias"
-CLOSING = re.compile(r"que teng[ao]|buen dia|buena tarde|buenas tardes|hasta luego|"
-                     r"le agradezco|muy amable|su atencion|excelente dia", re.I)
+CLOSING = re.compile(r"que teng[ao]\s+(?:buen|muy|excelente|bonit|linda|feliz)|"
+                     r"buen dia|buena tarde|buenas tardes|hasta luego|"
+                     r"le agradezco|muy amable|su atencion", re.I)
 
 # §18 blunt pushback
-PUSHBACK = re.compile(r"esta mal|equivocad|incorrect|lo estas diciendo mal|"
-                      r"no es asi|ya se lo dije|ya le dije|otra vez", re.I)
-
-# §19 noticing at the end that something was never given
-MISSING = re.compile(r"no me (dio|dijo|ha dado|dieron)|nunca me|falta|no me lo", re.I)
+PUSHBACK = re.compile(r"esta mal|equivocad|incorrect|lo estas diciendo mal", re.I)
 
 # §10 addressing the agent
 BY_NAME = re.compile(r"\bmarina\b", re.I)
-BY_TITLE = re.compile(r"senorita|senora\b|senor\b(?! [a-z])", re.I)
+BY_TITLE = re.compile(r"senorita", re.I)
 
 # agent-side anchors
 AG_INTERRUPT = re.compile(r"que (la|lo|le) interrump", re.I)
@@ -94,7 +98,11 @@ def _next_caller(turns, i, n=2):
     return norm(" ".join(out))
 
 
-def extract(turns: list[dict]) -> dict[str, float]:
+def extract(turns: list[dict], caller_speech_s: float | None = None) -> dict[str, float]:
+    """turns: Whisper turns for the call. caller_speech_s: seconds the caller
+    actually spoke, from the VAD. Whisper segment spans swallow the silence
+    around speech (about 2.2x the true duration on this data), so they cannot
+    be the denominator of a rate; the VAD can."""
     turns = sorted(turns, key=lambda x: x["start"])
     caller = [t for t in turns if t["channel"] == CALLER]
     agent = [t for t in turns if t["channel"] == AGENT]
@@ -159,13 +167,23 @@ def extract(turns: list[dict]) -> dict[str, float]:
     # §17 off-script questions --------------------------------------------------
     f["question_turn_rate"] = sum("?" in t["text"] for t in caller) / nc
 
-    # §18 / §19 friction --------------------------------------------------------
+    # §18 friction --------------------------------------------------------
     f["blunt_pushback"] = float(bool(PUSHBACK.search(allc)))
-    f["notices_missing"] = float(bool(MISSING.search(" ".join(ctext[-4:]))))
 
     # §10 how the agent is addressed --------------------------------------------
     f["calls_agent_by_name"] = float(bool(BY_NAME.search(allc)))
     f["calls_agent_by_title"] = float(bool(BY_TITLE.search(allc)))
+
+    # speech rate ---------------------------------------------------------------
+    # The strongest single signal in the layer: the synthetic caller packs far
+    # more words into each second of speech (review: 2.76 vs 1.71 words/s of
+    # VAD-measured speech, AUC 0.885 alone). The agent -- the same TTS voice on
+    # every call -- shows no such gap, which rules out the ASR hearing the two
+    # groups differently. Falls back to Whisper spans if no VAD seconds given.
+    total_words = float(sum(words))
+    if caller_speech_s is None:
+        caller_speech_s = sum(t["end"] - t["start"] for t in caller)
+    f["speech_rate"] = total_words / max(caller_speech_s, 1e-6)
 
     return f
 
@@ -181,6 +199,7 @@ AGENT_DEPENDENT = {
 
 
 FEATURE_NAMES = [
+    "speech_rate",
     "bare_turn_rate", "digits_only_turn_rate", "one_word_negation",
     "median_turn_words", "long_turn_rate",
     "positional_correction", "contrast_correction",
@@ -188,6 +207,6 @@ FEATURE_NAMES = [
     "closing_ritual", "closing_words",
     "two_options_reply_words", "elaboration_words", "max_turn_words",
     "bundles_name_and_ref", "question_turn_rate",
-    "blunt_pushback", "notices_missing",
+    "blunt_pushback",
     "calls_agent_by_name", "calls_agent_by_title",
 ]

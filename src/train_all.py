@@ -14,12 +14,12 @@ from src.call import Call
 from src.fusion import Fusion
 from src.views.behavioral_view import BehavioralView
 # from src.views.acoustic_view import AcousticView     
-# from src.views.semantic_view import SemanticView     
+from src.views.semantic_view import SemanticView
 
 VIEWS = [
     BehavioralView(),
     # AcousticView(),
-    # SemanticView(),
+    SemanticView(),
 ]
 
 
@@ -30,6 +30,9 @@ def report(name, y, p):
 
 def main():
     man = pd.read_csv(MANIFEST)
+    # train only: the splits are speaker-disjoint on purpose. Folding over all
+    # 353 would put val speakers into training and inflate the OOF metric.
+    man = man[man.split == "train"].reset_index(drop=True)
     calls = [Call.from_id(r.anon_id, r.duration_s) for _, r in man.iterrows()]
     y = (man.label == "synthetic").astype(int).values
 
