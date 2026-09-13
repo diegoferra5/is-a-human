@@ -1,0 +1,852 @@
+{
+  "generated_at": "2026-09-13 02:19 UTC",
+  "hold_rms_mean_acc": 0.03,
+  "before": {
+    "id": "before",
+    "source": "models/tandem.json (copied to models/tandem-before-tune.json)",
+    "fusion_type": "stacked",
+    "vad_backend": "hybrid",
+    "acoustic": {
+      "val": {
+        "accuracy": 0.9014,
+        "f1": 0.9067,
+        "auc": 0.9746
+      },
+      "features_used": [
+        "caller_rms_mean",
+        "caller_spectral_flatness_std",
+        "caller_spectral_centroid_std",
+        "caller_rms_cv",
+        "caller_zcr_std"
+      ],
+      "top_separators": [
+        {
+          "feature": "caller_rms_mean",
+          "effect_size": 1.5502
+        },
+        {
+          "feature": "caller_spectral_flatness_std",
+          "effect_size": -1.4574
+        },
+        {
+          "feature": "caller_spectral_centroid_std",
+          "effect_size": -1.4568
+        },
+        {
+          "feature": "caller_rms_cv",
+          "effect_size": -1.439
+        },
+        {
+          "feature": "caller_zcr_std",
+          "effect_size": -1.4133
+        }
+      ]
+    },
+    "behavioral": {
+      "val": {
+        "accuracy": 0.7887,
+        "f1": 0.8052,
+        "auc": 0.9134
+      },
+      "features_used": [
+        "caller_response_latency_cv",
+        "agent_aligned_recovery_cv",
+        "silence_ratio",
+        "agent_aligned_recovery_mean_s",
+        "caller_backchannel_count"
+      ],
+      "top_separators": [
+        {
+          "feature": "caller_response_latency_cv",
+          "effect_size": -1.4489
+        },
+        {
+          "feature": "agent_aligned_recovery_cv",
+          "effect_size": -1.3068
+        },
+        {
+          "feature": "silence_ratio",
+          "effect_size": 1.0916
+        },
+        {
+          "feature": "agent_aligned_recovery_mean_s",
+          "effect_size": 0.9706
+        },
+        {
+          "feature": "caller_backchannel_count",
+          "effect_size": -0.9418
+        }
+      ]
+    },
+    "stacked": {
+      "val": {
+        "accuracy": 0.9014,
+        "f1": 0.9041,
+        "auc": 0.9785
+      },
+      "top_separators": []
+    },
+    "concatenated": {
+      "val": {
+        "accuracy": 0.9155,
+        "f1": 0.9167,
+        "auc": 0.9873
+      },
+      "features_used": [
+        "caller_rms_mean",
+        "caller_spectral_flatness_std",
+        "caller_spectral_centroid_std",
+        "caller_rms_cv",
+        "caller_zcr_std",
+        "caller_response_latency_cv",
+        "agent_aligned_recovery_cv",
+        "silence_ratio",
+        "agent_aligned_recovery_mean_s",
+        "caller_backchannel_count"
+      ],
+      "top_separators": [
+        {
+          "feature": "caller_rms_mean",
+          "effect_size": 1.5502
+        },
+        {
+          "feature": "caller_spectral_flatness_std",
+          "effect_size": -1.4574
+        },
+        {
+          "feature": "caller_spectral_centroid_std",
+          "effect_size": -1.4568
+        },
+        {
+          "feature": "caller_response_latency_cv",
+          "effect_size": -1.4489
+        },
+        {
+          "feature": "caller_rms_cv",
+          "effect_size": -1.439
+        },
+        {
+          "feature": "caller_zcr_std",
+          "effect_size": -1.4133
+        },
+        {
+          "feature": "agent_aligned_recovery_cv",
+          "effect_size": -1.3068
+        },
+        {
+          "feature": "silence_ratio",
+          "effect_size": 1.0916
+        },
+        {
+          "feature": "agent_aligned_recovery_mean_s",
+          "effect_size": 0.9706
+        },
+        {
+          "feature": "caller_backchannel_count",
+          "effect_size": -0.9418
+        }
+      ]
+    },
+    "fusion_weights": {
+      "acoustic": 1.63841495768903,
+      "behavioral": 1.5154313288663688,
+      "bias": 0.5188261819063914
+    }
+  },
+  "variants": [
+    {
+      "id": "hybrid-no-rms-mean",
+      "vad_backend": "hybrid",
+      "include_rms_mean": false,
+      "metrics": {
+        "fusion_type": "stacked",
+        "vad_backend": "hybrid",
+        "acoustic": {
+          "val": {
+            "accuracy": 0.8732,
+            "f1": 0.8831,
+            "auc": 0.9634
+          },
+          "features_used": [
+            "caller_rms_cv",
+            "caller_zcr_std",
+            "caller_crest_factor_cv",
+            "caller_spectral_flatness_std",
+            "caller_spectral_centroid_std"
+          ],
+          "top_separators": [
+            {
+              "feature": "caller_spectral_flatness_std",
+              "effect_size": -1.4574
+            },
+            {
+              "feature": "caller_spectral_centroid_std",
+              "effect_size": -1.4568
+            },
+            {
+              "feature": "caller_rms_cv",
+              "effect_size": -1.439
+            },
+            {
+              "feature": "caller_zcr_std",
+              "effect_size": -1.4133
+            },
+            {
+              "feature": "caller_crest_factor_cv",
+              "effect_size": -1.2229
+            }
+          ]
+        },
+        "behavioral": {
+          "val": {
+            "accuracy": 0.9296,
+            "f1": 0.9296,
+            "auc": 0.9785
+          },
+          "features_used": [
+            "caller_response_latency_pos_median_s",
+            "agent_talk_ratio",
+            "agent_aligned_recovery_cv"
+          ],
+          "top_separators": [
+            {
+              "feature": "caller_response_latency_pos_median_s",
+              "effect_size": 1.8972
+            },
+            {
+              "feature": "agent_talk_ratio",
+              "effect_size": -1.3245
+            },
+            {
+              "feature": "agent_aligned_recovery_cv",
+              "effect_size": -1.3068
+            }
+          ]
+        },
+        "stacked": {
+          "val": {
+            "accuracy": 0.9437,
+            "f1": 0.9429,
+            "auc": 0.996
+          },
+          "top_separators": []
+        },
+        "concatenated": {
+          "val": {
+            "accuracy": 0.9577,
+            "f1": 0.9565,
+            "auc": 0.9984
+          },
+          "features_used": [
+            "caller_rms_cv",
+            "caller_zcr_std",
+            "caller_crest_factor_cv",
+            "caller_spectral_flatness_std",
+            "caller_spectral_centroid_std",
+            "caller_response_latency_pos_median_s",
+            "agent_talk_ratio",
+            "agent_aligned_recovery_cv"
+          ],
+          "top_separators": [
+            {
+              "feature": "caller_response_latency_pos_median_s",
+              "effect_size": 1.8972
+            },
+            {
+              "feature": "caller_spectral_flatness_std",
+              "effect_size": -1.4574
+            },
+            {
+              "feature": "caller_spectral_centroid_std",
+              "effect_size": -1.4568
+            },
+            {
+              "feature": "caller_rms_cv",
+              "effect_size": -1.439
+            },
+            {
+              "feature": "caller_zcr_std",
+              "effect_size": -1.4133
+            },
+            {
+              "feature": "agent_talk_ratio",
+              "effect_size": -1.3245
+            },
+            {
+              "feature": "agent_aligned_recovery_cv",
+              "effect_size": -1.3068
+            },
+            {
+              "feature": "caller_crest_factor_cv",
+              "effect_size": -1.2229
+            }
+          ]
+        },
+        "fusion_weights": {
+          "acoustic": 1.6454,
+          "behavioral": 2.4137,
+          "bias": 0.5719
+        }
+      }
+    },
+    {
+      "id": "hybrid-with-rms-mean",
+      "vad_backend": "hybrid",
+      "include_rms_mean": true,
+      "metrics": {
+        "fusion_type": "stacked",
+        "vad_backend": "hybrid",
+        "acoustic": {
+          "val": {
+            "accuracy": 0.9014,
+            "f1": 0.9067,
+            "auc": 0.9746
+          },
+          "features_used": [
+            "caller_rms_mean",
+            "caller_rms_cv",
+            "caller_zcr_std",
+            "caller_crest_factor_cv",
+            "caller_spectral_flatness_std",
+            "caller_spectral_centroid_std"
+          ],
+          "top_separators": [
+            {
+              "feature": "caller_rms_mean",
+              "effect_size": 1.5502
+            },
+            {
+              "feature": "caller_spectral_flatness_std",
+              "effect_size": -1.4574
+            },
+            {
+              "feature": "caller_spectral_centroid_std",
+              "effect_size": -1.4568
+            },
+            {
+              "feature": "caller_rms_cv",
+              "effect_size": -1.439
+            },
+            {
+              "feature": "caller_zcr_std",
+              "effect_size": -1.4133
+            },
+            {
+              "feature": "caller_crest_factor_cv",
+              "effect_size": -1.2229
+            }
+          ]
+        },
+        "behavioral": {
+          "val": {
+            "accuracy": 0.9296,
+            "f1": 0.9296,
+            "auc": 0.9785
+          },
+          "features_used": [
+            "caller_response_latency_pos_median_s",
+            "agent_talk_ratio",
+            "agent_aligned_recovery_cv"
+          ],
+          "top_separators": [
+            {
+              "feature": "caller_response_latency_pos_median_s",
+              "effect_size": 1.8972
+            },
+            {
+              "feature": "agent_talk_ratio",
+              "effect_size": -1.3245
+            },
+            {
+              "feature": "agent_aligned_recovery_cv",
+              "effect_size": -1.3068
+            }
+          ]
+        },
+        "stacked": {
+          "val": {
+            "accuracy": 0.9437,
+            "f1": 0.9429,
+            "auc": 0.9976
+          },
+          "top_separators": []
+        },
+        "concatenated": {
+          "val": {
+            "accuracy": 0.9718,
+            "f1": 0.9714,
+            "auc": 0.9992
+          },
+          "features_used": [
+            "caller_rms_mean",
+            "caller_rms_cv",
+            "caller_zcr_std",
+            "caller_crest_factor_cv",
+            "caller_spectral_flatness_std",
+            "caller_spectral_centroid_std",
+            "caller_response_latency_pos_median_s",
+            "agent_talk_ratio",
+            "agent_aligned_recovery_cv"
+          ],
+          "top_separators": [
+            {
+              "feature": "caller_response_latency_pos_median_s",
+              "effect_size": 1.8972
+            },
+            {
+              "feature": "caller_rms_mean",
+              "effect_size": 1.5502
+            },
+            {
+              "feature": "caller_spectral_flatness_std",
+              "effect_size": -1.4574
+            },
+            {
+              "feature": "caller_spectral_centroid_std",
+              "effect_size": -1.4568
+            },
+            {
+              "feature": "caller_rms_cv",
+              "effect_size": -1.439
+            },
+            {
+              "feature": "caller_zcr_std",
+              "effect_size": -1.4133
+            },
+            {
+              "feature": "agent_talk_ratio",
+              "effect_size": -1.3245
+            },
+            {
+              "feature": "agent_aligned_recovery_cv",
+              "effect_size": -1.3068
+            },
+            {
+              "feature": "caller_crest_factor_cv",
+              "effect_size": -1.2229
+            }
+          ]
+        },
+        "fusion_weights": {
+          "acoustic": 1.6786,
+          "behavioral": 2.3323,
+          "bias": 0.539
+        }
+      }
+    },
+    {
+      "id": "silero-no-rms-mean",
+      "vad_backend": "silero",
+      "include_rms_mean": false,
+      "metrics": {
+        "fusion_type": "stacked",
+        "vad_backend": "silero",
+        "acoustic": {
+          "val": {
+            "accuracy": 0.7606,
+            "f1": 0.7848,
+            "auc": 0.9014
+          },
+          "features_used": [
+            "caller_rms_cv",
+            "caller_zcr_std",
+            "caller_crest_factor_cv",
+            "caller_spectral_flatness_std",
+            "caller_spectral_centroid_std"
+          ],
+          "top_separators": [
+            {
+              "feature": "caller_zcr_std",
+              "effect_size": -1.038
+            },
+            {
+              "feature": "caller_spectral_centroid_std",
+              "effect_size": -0.5572
+            },
+            {
+              "feature": "caller_crest_factor_cv",
+              "effect_size": 0.3253
+            },
+            {
+              "feature": "caller_rms_cv",
+              "effect_size": 0.2195
+            },
+            {
+              "feature": "caller_spectral_flatness_std",
+              "effect_size": -0.037
+            }
+          ]
+        },
+        "behavioral": {
+          "val": {
+            "accuracy": 0.9296,
+            "f1": 0.9275,
+            "auc": 0.9626
+          },
+          "features_used": [
+            "caller_response_latency_pos_median_s",
+            "agent_talk_ratio",
+            "agent_aligned_recovery_cv"
+          ],
+          "top_separators": [
+            {
+              "feature": "agent_talk_ratio",
+              "effect_size": -1.319
+            },
+            {
+              "feature": "caller_response_latency_pos_median_s",
+              "effect_size": 1.2542
+            },
+            {
+              "feature": "agent_aligned_recovery_cv",
+              "effect_size": -1.0898
+            }
+          ]
+        },
+        "stacked": {
+          "val": {
+            "accuracy": 0.9437,
+            "f1": 0.9429,
+            "auc": 0.9841
+          },
+          "top_separators": []
+        },
+        "concatenated": {
+          "val": {
+            "accuracy": 0.9296,
+            "f1": 0.9296,
+            "auc": 0.9849
+          },
+          "features_used": [
+            "caller_rms_cv",
+            "caller_zcr_std",
+            "caller_crest_factor_cv",
+            "caller_spectral_flatness_std",
+            "caller_spectral_centroid_std",
+            "caller_response_latency_pos_median_s",
+            "agent_talk_ratio",
+            "agent_aligned_recovery_cv"
+          ],
+          "top_separators": [
+            {
+              "feature": "agent_talk_ratio",
+              "effect_size": -1.319
+            },
+            {
+              "feature": "caller_response_latency_pos_median_s",
+              "effect_size": 1.2542
+            },
+            {
+              "feature": "agent_aligned_recovery_cv",
+              "effect_size": -1.0898
+            },
+            {
+              "feature": "caller_zcr_std",
+              "effect_size": -1.038
+            },
+            {
+              "feature": "caller_spectral_centroid_std",
+              "effect_size": -0.5572
+            },
+            {
+              "feature": "caller_crest_factor_cv",
+              "effect_size": 0.3253
+            },
+            {
+              "feature": "caller_rms_cv",
+              "effect_size": 0.2195
+            },
+            {
+              "feature": "caller_spectral_flatness_std",
+              "effect_size": -0.037
+            }
+          ]
+        },
+        "fusion_weights": {
+          "acoustic": 0.984,
+          "behavioral": 2.4364,
+          "bias": 0.8788
+        }
+      }
+    },
+    {
+      "id": "silero-with-rms-mean",
+      "vad_backend": "silero",
+      "include_rms_mean": true,
+      "metrics": {
+        "fusion_type": "stacked",
+        "vad_backend": "silero",
+        "acoustic": {
+          "val": {
+            "accuracy": 0.8732,
+            "f1": 0.8732,
+            "auc": 0.9587
+          },
+          "features_used": [
+            "caller_rms_mean",
+            "caller_rms_cv",
+            "caller_zcr_std",
+            "caller_crest_factor_cv",
+            "caller_spectral_flatness_std",
+            "caller_spectral_centroid_std"
+          ],
+          "top_separators": [
+            {
+              "feature": "caller_zcr_std",
+              "effect_size": -1.038
+            },
+            {
+              "feature": "caller_rms_mean",
+              "effect_size": 0.999
+            },
+            {
+              "feature": "caller_spectral_centroid_std",
+              "effect_size": -0.5572
+            },
+            {
+              "feature": "caller_crest_factor_cv",
+              "effect_size": 0.3253
+            },
+            {
+              "feature": "caller_rms_cv",
+              "effect_size": 0.2195
+            },
+            {
+              "feature": "caller_spectral_flatness_std",
+              "effect_size": -0.037
+            }
+          ]
+        },
+        "behavioral": {
+          "val": {
+            "accuracy": 0.9296,
+            "f1": 0.9275,
+            "auc": 0.9626
+          },
+          "features_used": [
+            "caller_response_latency_pos_median_s",
+            "agent_talk_ratio",
+            "agent_aligned_recovery_cv"
+          ],
+          "top_separators": [
+            {
+              "feature": "agent_talk_ratio",
+              "effect_size": -1.319
+            },
+            {
+              "feature": "caller_response_latency_pos_median_s",
+              "effect_size": 1.2542
+            },
+            {
+              "feature": "agent_aligned_recovery_cv",
+              "effect_size": -1.0898
+            }
+          ]
+        },
+        "stacked": {
+          "val": {
+            "accuracy": 0.9577,
+            "f1": 0.9565,
+            "auc": 0.996
+          },
+          "top_separators": []
+        },
+        "concatenated": {
+          "val": {
+            "accuracy": 0.9718,
+            "f1": 0.9706,
+            "auc": 0.996
+          },
+          "features_used": [
+            "caller_rms_mean",
+            "caller_rms_cv",
+            "caller_zcr_std",
+            "caller_crest_factor_cv",
+            "caller_spectral_flatness_std",
+            "caller_spectral_centroid_std",
+            "caller_response_latency_pos_median_s",
+            "agent_talk_ratio",
+            "agent_aligned_recovery_cv"
+          ],
+          "top_separators": [
+            {
+              "feature": "agent_talk_ratio",
+              "effect_size": -1.319
+            },
+            {
+              "feature": "caller_response_latency_pos_median_s",
+              "effect_size": 1.2542
+            },
+            {
+              "feature": "agent_aligned_recovery_cv",
+              "effect_size": -1.0898
+            },
+            {
+              "feature": "caller_zcr_std",
+              "effect_size": -1.038
+            },
+            {
+              "feature": "caller_rms_mean",
+              "effect_size": 0.999
+            },
+            {
+              "feature": "caller_spectral_centroid_std",
+              "effect_size": -0.5572
+            },
+            {
+              "feature": "caller_crest_factor_cv",
+              "effect_size": 0.3253
+            },
+            {
+              "feature": "caller_rms_cv",
+              "effect_size": 0.2195
+            },
+            {
+              "feature": "caller_spectral_flatness_std",
+              "effect_size": -0.037
+            }
+          ]
+        },
+        "fusion_weights": {
+          "acoustic": 1.3537,
+          "behavioral": 2.3259,
+          "bias": 0.8319
+        }
+      }
+    }
+  ],
+  "chosen_id": "hybrid-no-rms-mean",
+  "reason": "dropped caller_rms_mean (stacked acc hold \u2264 3%); hybrid matched or beat Silero on behavioural/stacked acc.",
+  "chosen": {
+    "fusion_type": "stacked",
+    "vad_backend": "hybrid",
+    "acoustic": {
+      "val": {
+        "accuracy": 0.8732,
+        "f1": 0.8831,
+        "auc": 0.9634
+      },
+      "features_used": [
+        "caller_rms_cv",
+        "caller_zcr_std",
+        "caller_crest_factor_cv",
+        "caller_spectral_flatness_std",
+        "caller_spectral_centroid_std"
+      ],
+      "top_separators": [
+        {
+          "feature": "caller_spectral_flatness_std",
+          "effect_size": -1.4574
+        },
+        {
+          "feature": "caller_spectral_centroid_std",
+          "effect_size": -1.4568
+        },
+        {
+          "feature": "caller_rms_cv",
+          "effect_size": -1.439
+        },
+        {
+          "feature": "caller_zcr_std",
+          "effect_size": -1.4133
+        },
+        {
+          "feature": "caller_crest_factor_cv",
+          "effect_size": -1.2229
+        }
+      ]
+    },
+    "behavioral": {
+      "val": {
+        "accuracy": 0.9296,
+        "f1": 0.9296,
+        "auc": 0.9785
+      },
+      "features_used": [
+        "caller_response_latency_pos_median_s",
+        "agent_talk_ratio",
+        "agent_aligned_recovery_cv"
+      ],
+      "top_separators": [
+        {
+          "feature": "caller_response_latency_pos_median_s",
+          "effect_size": 1.8972
+        },
+        {
+          "feature": "agent_talk_ratio",
+          "effect_size": -1.3245
+        },
+        {
+          "feature": "agent_aligned_recovery_cv",
+          "effect_size": -1.3068
+        }
+      ]
+    },
+    "stacked": {
+      "val": {
+        "accuracy": 0.9437,
+        "f1": 0.9429,
+        "auc": 0.996
+      },
+      "top_separators": []
+    },
+    "concatenated": {
+      "val": {
+        "accuracy": 0.9577,
+        "f1": 0.9565,
+        "auc": 0.9984
+      },
+      "features_used": [
+        "caller_rms_cv",
+        "caller_zcr_std",
+        "caller_crest_factor_cv",
+        "caller_spectral_flatness_std",
+        "caller_spectral_centroid_std",
+        "caller_response_latency_pos_median_s",
+        "agent_talk_ratio",
+        "agent_aligned_recovery_cv"
+      ],
+      "top_separators": [
+        {
+          "feature": "caller_response_latency_pos_median_s",
+          "effect_size": 1.8972
+        },
+        {
+          "feature": "caller_spectral_flatness_std",
+          "effect_size": -1.4574
+        },
+        {
+          "feature": "caller_spectral_centroid_std",
+          "effect_size": -1.4568
+        },
+        {
+          "feature": "caller_rms_cv",
+          "effect_size": -1.439
+        },
+        {
+          "feature": "caller_zcr_std",
+          "effect_size": -1.4133
+        },
+        {
+          "feature": "agent_talk_ratio",
+          "effect_size": -1.3245
+        },
+        {
+          "feature": "agent_aligned_recovery_cv",
+          "effect_size": -1.3068
+        },
+        {
+          "feature": "caller_crest_factor_cv",
+          "effect_size": -1.2229
+        }
+      ]
+    },
+    "fusion_weights": {
+      "acoustic": 1.6454,
+      "behavioral": 2.4137,
+      "bias": 0.5719
+    }
+  },
+  "shipped_model": "models/tandem.json",
+  "revert": "cp models/tandem-before-tune.json models/tandem.json"
+}

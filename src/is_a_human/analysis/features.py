@@ -4,18 +4,17 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, fields
 from time import perf_counter
-from typing import Literal
 
 import numpy as np
 
 from is_a_human.analysis.acoustic import extract_acoustic_features
+from is_a_human.analysis.behavioral import extract_timing_features
 from is_a_human.analysis.interaction_physics import extract_interaction_physics_features
 from is_a_human.analysis.micro_variation import extract_micro_variation_features
 from is_a_human.analysis.recovery import extract_recovery_features
 from is_a_human.analysis.semantic import extract_semantic_features
 from is_a_human.dataset.loader import TurnSegment
 from is_a_human.pipeline import PipelineResult, process_call
-from is_a_human.turns.ledger import TurnLedger, TurnType
 
 METADATA_FIELDS = {"anon_id", "label", "split"}
 
@@ -36,14 +35,32 @@ class CallFeatures:
     agent_segment_count: int
     overlap_event_count: int
 
+    overlap_total_s: float
+    turn_ratio: float
+    caller_vs_agent_speech: float
+    caller_turns_per_min: float
+    caller_sec_per_turn: float
+
     caller_utterance_mean_s: float
     caller_utterance_std_s: float
+    caller_utterance_median_s: float
+    caller_utterance_cv: float
     agent_utterance_mean_s: float
     agent_utterance_std_s: float
+    agent_utterance_median_s: float
+    agent_utterance_cv: float
 
     caller_response_latency_mean_s: float
     caller_response_latency_std_s: float
     caller_response_latency_cv: float
+    caller_response_latency_median_s: float
+    caller_response_latency_min_s: float
+    caller_response_latency_max_s: float
+    caller_response_latency_pos_mean_s: float
+    caller_response_latency_pos_median_s: float
+    caller_response_latency_pos_min_s: float
+    caller_response_latency_pos_max_s: float
+    caller_response_latency_pos_cv: float
 
     agent_response_latency_mean_s: float
     agent_response_latency_std_s: float
@@ -164,48 +181,25 @@ def behavioral_feature_names() -> tuple[str, ...]:
     )
 
 
+# Shipped tandem heads. Loudness mean is a likely injection artifact; the four
+# positive-latency stats are one signal, so the behavioural head keeps median only.
+ACOUSTIC_HEAD_FEATURES = (
+    "caller_rms_cv",
+    "caller_zcr_std",
+    "caller_crest_factor_cv",
+    "caller_spectral_flatness_std",
+    "caller_spectral_centroid_std",
+)
+ACOUSTIC_HEAD_FEATURES_WITH_RMS_MEAN = ("caller_rms_mean",) + ACOUSTIC_HEAD_FEATURES
+BEHAVIORAL_HEAD_FEATURES = (
+    "caller_response_latency_pos_median_s",
+    "agent_talk_ratio",
+    "agent_aligned_recovery_cv",
+)
+
+
 def numeric_feature_vector(features: CallFeatures) -> np.ndarray:
     return np.array([float(getattr(features, name)) for name in CallFeatures.numeric_field_names()])
-
-
-def _segment_durations(ledger: TurnLedger, channel: int) -> list[float]:
-    return [
-        segment.end - segment.start
-        for segment in ledger.speech_segments
-        if segment.channel == channel
-    ]
-
-
-def _response_latencies(ledger: TurnLedger, responder_channel: int) -> list[float]:
-    other_channel = 1 - responder_channel
-    latencies: list[float] = []
-
-    other_stops = [
-        event.end
-        for event in ledger.events
-        if event.type == TurnType.SPEECH and event.channel == other_channel
-    ]
-    responder_starts = [
-        event.start
-        for event in ledger.events
-        if event.type == TurnType.SPEECH and event.channel == responder_channel
-    ]
-
-    for stop_time in other_stops:
-        next_starts = [start for start in responder_starts if start > stop_time]
-        if next_starts:
-            latencies.append(next_starts[0] - stop_time)
-
-    return latencies
-
-
-def _latency_stats(latencies: list[float]) -> tuple[float, float, float]:
-    if not latencies:
-        return 0.0, 0.0, 0.0
-    mean = float(np.mean(latencies))
-    std = float(np.std(latencies))
-    cv = std / mean if mean > 0 else 0.0
-    return mean, std, cv
 
 
 def _as_turn_segments(segments) -> tuple[TurnSegment, ...]:
@@ -232,6 +226,7 @@ def extract_call_features_timed(
     turns: tuple[TurnSegment, ...] | None = None,
     heavy: bool = True,
     transcript_turns: list[dict] | None = None,
+    vad_backend: str | None = None,
 ) -> tuple[CallFeatures, dict[str, float | None]]:
     """Extract features and record VAD / acoustic / semantic / behavioural ms."""
     timings: dict[str, float | None] = {
@@ -244,32 +239,24 @@ def extract_call_features_timed(
 
     if pipeline_result is None:
         started = perf_counter()
-        result = process_call(ch0_caller, ch1_agent, sample_rate)
+        result = process_call(ch0_caller, ch1_agent, sample_rate, backend=vad_backend)
         timings["vad"] = _elapsed_ms(started)
     else:
         result = pipeline_result
 
     ledger = result.ledger
-    metrics = result.metrics
     speech = turns if turns is not None else organizer_turns
     if speech is None:
         speech = _as_turn_segments(ledger.speech_segments)
 
     duration_s = max(len(ch0_caller), len(ch1_agent)) / sample_rate
-    safe_duration = duration_s if duration_s > 0 else 1.0
 
     started = perf_counter()
     acoustic = extract_acoustic_features(ch0_caller, sample_rate, speech, duration_s)
     timings["acoustic"] = _elapsed_ms(started)
 
     started = perf_counter()
-    caller_durations = _segment_durations(ledger, channel=0)
-    agent_durations = _segment_durations(ledger, channel=1)
-    caller_latencies = _response_latencies(ledger, responder_channel=0)
-    agent_latencies = _response_latencies(ledger, responder_channel=1)
-    caller_lat_mean, caller_lat_std, caller_lat_cv = _latency_stats(caller_latencies)
-    agent_lat_mean, agent_lat_std, agent_lat_cv = _latency_stats(agent_latencies)
-    overlap_events = sum(1 for event in ledger.events if event.type == TurnType.OVERLAP)
+    timing = extract_timing_features(speech, duration_s)
     recovery = extract_recovery_features(speech)
     timings["behavioral"] = _elapsed_ms(started)
 
@@ -295,23 +282,7 @@ def extract_call_features_timed(
         label=label,
         split=split,
         duration_s=duration_s,
-        caller_talk_ratio=metrics.caller_talk_time_s / safe_duration,
-        agent_talk_ratio=metrics.agent_talk_time_s / safe_duration,
-        overlap_ratio=metrics.overlap_time_s / safe_duration,
-        silence_ratio=metrics.silence_time_s / safe_duration,
-        caller_segment_count=len(caller_durations),
-        agent_segment_count=len(agent_durations),
-        overlap_event_count=overlap_events,
-        caller_utterance_mean_s=float(np.mean(caller_durations)) if caller_durations else 0.0,
-        caller_utterance_std_s=float(np.std(caller_durations)) if caller_durations else 0.0,
-        agent_utterance_mean_s=float(np.mean(agent_durations)) if agent_durations else 0.0,
-        agent_utterance_std_s=float(np.std(agent_durations)) if agent_durations else 0.0,
-        caller_response_latency_mean_s=caller_lat_mean,
-        caller_response_latency_std_s=caller_lat_std,
-        caller_response_latency_cv=caller_lat_cv,
-        agent_response_latency_mean_s=agent_lat_mean,
-        agent_response_latency_std_s=agent_lat_std,
-        agent_response_latency_cv=agent_lat_cv,
+        **timing,
         **acoustic,
         **recovery,
         **micro,
@@ -333,6 +304,7 @@ def extract_call_features(
     turns: tuple[TurnSegment, ...] | None = None,
     heavy: bool = True,
     transcript_turns: list[dict] | None = None,
+    vad_backend: str | None = None,
 ) -> CallFeatures:
     """Extract features. Default turns are VAD ledger segments, not organizer JSON."""
     features, _timings = extract_call_features_timed(
@@ -347,5 +319,6 @@ def extract_call_features(
         turns=turns,
         heavy=heavy,
         transcript_turns=transcript_turns,
+        vad_backend=vad_backend,
     )
     return features

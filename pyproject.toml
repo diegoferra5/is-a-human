@@ -32,6 +32,7 @@ is-a-human-train = "is_a_human.detect.cli:main"
 is-a-human-explore = "is_a_human.analysis.cli:main"
 is-a-human-serve = "is_a_human.api.cli:main"
 is-a-human-latency = "is_a_human.eval.latency_compare:main"
+is-a-human-inspect = "is_a_human.eval.inspect_cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

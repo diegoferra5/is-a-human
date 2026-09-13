@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from is_a_human.analysis.features import CallFeatures, extract_call_features
+from is_a_human.analysis.features import BEHAVIORAL_HEAD_FEATURES, CallFeatures, extract_call_features
 from is_a_human.detect.tandem import load_tandem, save_tandem, train_tandem_from_rows
 from is_a_human.pipeline import PipelineResult
 from is_a_human.turns.ledger import TurnEvent, TurnLedger, TurnType
@@ -18,6 +18,11 @@ def _row(label: str, talk: float, agent: float, rms: float) -> CallFeatures:
         caller_rms_mean=rms,
         caller_zcr_std=zcr,
         caller_rms_cv=zcr,
+        caller_crest_factor_cv=zcr,
+        caller_spectral_flatness_std=zcr,
+        caller_spectral_centroid_std=zcr * 100,
+        caller_response_latency_pos_median_s=0.2 if label == "human" else 0.9,
+        agent_aligned_recovery_cv=0.9 if label == "human" else 0.4,
     )
     return CallFeatures(anon_id=f"{label}_{talk}_{rms}", label=label, split="train", **base)
 
@@ -92,7 +97,16 @@ def test_train_tandem_separates_and_roundtrips(tmp_path):
     path = tmp_path / "tandem.json"
     save_tandem(model, path)
     loaded = load_tandem(path)
+    assert loaded.disagree_unsure == pytest.approx(model.disagree_unsure)
     probability, views = loaded.predict(val[1])
     assert 0.0 <= probability <= 1.0
     assert probability > 0.5
     assert set(views) == {"acoustic", "behavioral"}
+
+
+def test_default_heads_drop_rms_mean_and_collinear_latency():
+    train, val = _toy_splits()
+    model = train_tandem_from_rows(train, val)
+    assert "caller_rms_mean" not in model.acoustic.feature_names
+    assert model.behavioral.feature_names == BEHAVIORAL_HEAD_FEATURES
+    assert "caller_response_latency_pos_mean_s" not in model.behavioral.feature_names

@@ -9,15 +9,44 @@ from types import SimpleNamespace
 
 import numpy as np
 
-from is_a_human.analysis.classifier import TrainedLogistic, evaluate_classifier, train_logistic_regression
+from is_a_human.analysis.classifier import (
+    TrainedLogistic,
+    _compute_metrics,
+    evaluate_classifier,
+    train_logistic_regression,
+)
 from is_a_human.analysis.explore import _collect_features
-from is_a_human.analysis.features import CallFeatures, acoustic_feature_names, behavioral_feature_names
+from is_a_human.analysis.features import (
+    ACOUSTIC_HEAD_FEATURES,
+    BEHAVIORAL_HEAD_FEATURES,
+    CallFeatures,
+)
 from is_a_human.eval.layer_benchmark import select_top_features
-from is_a_human.turns.backends import DEFAULT_VAD_BACKEND
+from is_a_human.turns.backends import DEFAULT_VAD_BACKEND, VadBackendName
 
 DEFAULT_MODEL_PATH = Path("models/tandem.json")
 STACK_MARGIN = 0.01
 FUSION_FEATURES = ("p_acoustic", "p_behavioral")
+# When heads disagree and the mixer is near 0.5, use the sharper head.
+DISAGREE_UNSURE = 0.10
+
+
+def resolve_disagreement(
+    p_fused: float,
+    p_acoustic: float,
+    p_behavioral: float,
+    unsure: float = DISAGREE_UNSURE,
+) -> float:
+    """Keep the mixer unless it is unsure under a head disagreement."""
+    acoustic_synth = p_acoustic >= 0.5
+    behavioral_synth = p_behavioral >= 0.5
+    if acoustic_synth == behavioral_synth:
+        return p_fused
+    if abs(p_fused - 0.5) >= unsure:
+        return p_fused
+    if abs(p_acoustic - 0.5) >= abs(p_behavioral - 0.5):
+        return p_acoustic
+    return p_behavioral
 
 
 @dataclass
@@ -29,6 +58,7 @@ class TandemModel:
     fusion: TrainedLogistic | None
     concatenated: TrainedLogistic | None
     metrics: dict
+    disagree_unsure: float = DISAGREE_UNSURE
 
     def predict(self, features: CallFeatures) -> tuple[float, dict[str, float]]:
         views = {
@@ -41,7 +71,13 @@ class TandemModel:
                 p_acoustic=views["acoustic"],
                 p_behavioral=views["behavioral"],
             )
-            return self.fusion.predict_one(stacked), views
+            fused = self.fusion.predict_one(stacked)
+            return (
+                resolve_disagreement(
+                    fused, views["acoustic"], views["behavioral"], self.disagree_unsure
+                ),
+                views,
+            )
         if self.concatenated is None:
             raise RuntimeError("concatenated model missing")
         return self.concatenated.predict_one(features), views
@@ -53,6 +89,18 @@ def _metrics_dict(model: TrainedLogistic, rows: list) -> dict:
         "accuracy": round(scored.accuracy, 4),
         "f1": round(scored.f1, 4),
         "auc": round(scored.auc, 4),
+    }
+
+
+def _metrics_from_predict(model: TandemModel, rows: list[CallFeatures]) -> dict:
+    y_true = np.array([1.0 if row.label == "synthetic" else 0.0 for row in rows])
+    y_prob = np.array([model.predict(row)[0] for row in rows])
+    y_pred = (y_prob >= 0.5).astype(int)
+    scored = _compute_metrics(y_true, y_pred, y_prob)
+    return {
+        "accuracy": round(scored.accuracy, 4),
+        "f1": round(scored.f1, 4),
+        "auc": round(float(scored.auc), 4),
     }
 
 
@@ -102,15 +150,13 @@ def train_tandem_from_rows(
     train_rows: list[CallFeatures],
     val_rows: list[CallFeatures],
     *,
-    k: int = 5,
+    acoustic_features: tuple[str, ...] = ACOUSTIC_HEAD_FEATURES,
+    behavioral_features: tuple[str, ...] = BEHAVIORAL_HEAD_FEATURES,
+    vad_backend: VadBackendName = DEFAULT_VAD_BACKEND,
 ) -> TandemModel:
     """Fit heads + both fusion styles. Ship stacked if within STACK_MARGIN of concat val AUC."""
-    acoustic_names = tuple(
-        item["feature"] for item in select_top_features(train_rows, acoustic_feature_names(), k=k)
-    )
-    behavioral_names = tuple(
-        item["feature"] for item in select_top_features(train_rows, behavioral_feature_names(), k=k)
-    )
+    acoustic_names = tuple(acoustic_features)
+    behavioral_names = tuple(behavioral_features)
     if not acoustic_names or not behavioral_names:
         raise ValueError("Need labelled human and synthetic rows in train and val.")
     if {row.label for row in train_rows} != {"human", "synthetic"}:
@@ -137,9 +183,9 @@ def train_tandem_from_rows(
     concat_val = _metrics_dict(concatenated, val_rows)
     fusion_type = "stacked" if stacked_val["auc"] >= concat_val["auc"] - STACK_MARGIN else "concatenated"
 
-    return TandemModel(
+    model = TandemModel(
         fusion_type=fusion_type,
-        vad_backend=DEFAULT_VAD_BACKEND,
+        vad_backend=vad_backend,
         acoustic=acoustic,
         behavioral=behavioral,
         fusion=fusion,
@@ -161,8 +207,18 @@ def train_tandem_from_rows(
                 "features_used": list(concat_names),
                 "top_separators": select_top_features(train_rows, concat_names, k=len(concat_names)),
             },
+            "fusion_weights": {
+                "acoustic": round(float(fusion.weights[0]), 4),
+                "behavioral": round(float(fusion.weights[1]), 4),
+                "bias": round(float(fusion.bias), 4),
+            },
         },
+        disagree_unsure=DISAGREE_UNSURE,
     )
+    if fusion_type == "stacked":
+        model.metrics["stacked"]["val"] = _metrics_from_predict(model, val_rows)
+        model.metrics["disagree_unsure"] = DISAGREE_UNSURE
+    return model
 
 
 def train_tandem(
@@ -170,10 +226,33 @@ def train_tandem(
     *,
     limit: int | None = None,
     show_progress: bool = False,
+    vad_backend: VadBackendName = DEFAULT_VAD_BACKEND,
+    acoustic_features: tuple[str, ...] = ACOUSTIC_HEAD_FEATURES,
+    behavioral_features: tuple[str, ...] = BEHAVIORAL_HEAD_FEATURES,
 ) -> TandemModel:
-    train_rows = _collect_features("train", dataset_root, limit=limit, show_progress=show_progress)
-    val_rows = _collect_features("val", dataset_root, limit=limit, show_progress=show_progress)
-    return train_tandem_from_rows(train_rows, val_rows)
+    train_rows = _collect_features(
+        "train",
+        dataset_root,
+        limit=limit,
+        show_progress=show_progress,
+        heavy=False,
+        vad_backend=vad_backend,
+    )
+    val_rows = _collect_features(
+        "val",
+        dataset_root,
+        limit=limit,
+        show_progress=show_progress,
+        heavy=False,
+        vad_backend=vad_backend,
+    )
+    return train_tandem_from_rows(
+        train_rows,
+        val_rows,
+        acoustic_features=acoustic_features,
+        behavioral_features=behavioral_features,
+        vad_backend=vad_backend,
+    )
 
 
 def save_tandem(model: TandemModel, path: Path | str = DEFAULT_MODEL_PATH) -> Path:
@@ -182,6 +261,7 @@ def save_tandem(model: TandemModel, path: Path | str = DEFAULT_MODEL_PATH) -> Pa
     payload = {
         "fusion_type": model.fusion_type,
         "vad_backend": model.vad_backend,
+        "disagree_unsure": model.disagree_unsure,
         "acoustic": model.acoustic.to_dict(),
         "behavioral": model.behavioral.to_dict(),
         "fusion": model.fusion.to_dict() if model.fusion else None,
@@ -204,6 +284,7 @@ def load_tandem(path: Path | str = DEFAULT_MODEL_PATH) -> TandemModel:
         fusion=TrainedLogistic.from_dict(fusion_payload) if fusion_payload else None,
         concatenated=TrainedLogistic.from_dict(concat_payload) if concat_payload else None,
         metrics=payload.get("metrics") or {},
+        disagree_unsure=float(payload.get("disagree_unsure", DISAGREE_UNSURE)),
     )
 
 

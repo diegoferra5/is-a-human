@@ -38,6 +38,7 @@ def detect_from_audio(
     call_id: str = "live",
     heavy: bool = False,
     transcript_turns: list[dict] | None = None,
+    vad_backend: str | None = None,
 ) -> tuple[float, dict[str, float], dict[str, float | None]]:
     features, timings = extract_call_features_timed(
         anon_id=call_id,
@@ -48,6 +49,7 @@ def detect_from_audio(
         sample_rate=sample_rate,
         heavy=heavy,
         transcript_turns=transcript_turns,
+        vad_backend=vad_backend if vad_backend is not None else model.vad_backend,
     )
     probability, views = model.predict(features)
     return probability, views, timings

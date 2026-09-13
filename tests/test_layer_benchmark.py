@@ -1,4 +1,8 @@
-from is_a_human.analysis.features import CallFeatures
+from is_a_human.analysis.features import (
+    ACOUSTIC_HEAD_FEATURES,
+    BEHAVIORAL_HEAD_FEATURES,
+    CallFeatures,
+)
 from is_a_human.eval.benchmark_html import render_benchmark_page
 from is_a_human.eval.layer_benchmark import (
     ACOUSTIC_FEATURES,
@@ -13,6 +17,13 @@ def test_feature_groups_partition_numeric_fields():
     numeric = set(CallFeatures.numeric_field_names()) - {"duration_s"}
     assert "caller_rms_mean" in ACOUSTIC_FEATURES
     assert "caller_talk_ratio" in BEHAVIORAL_FEATURES
+    assert "caller_response_latency_pos_median_s" in BEHAVIORAL_FEATURES
+    assert "caller_rms_mean" not in ACOUSTIC_HEAD_FEATURES
+    assert BEHAVIORAL_HEAD_FEATURES == (
+        "caller_response_latency_pos_median_s",
+        "agent_talk_ratio",
+        "agent_aligned_recovery_cv",
+    )
     assert set(ACOUSTIC_FEATURES).isdisjoint(BEHAVIORAL_FEATURES)
     assert set(ACOUSTIC_FEATURES) | set(BEHAVIORAL_FEATURES) == numeric
 

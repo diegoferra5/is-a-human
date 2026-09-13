@@ -161,6 +161,8 @@ def _collect_features(
     *,
     limit: int | None = None,
     show_progress: bool = False,
+    heavy: bool = True,
+    vad_backend: str | None = None,
 ) -> list[CallFeatures]:
     try:
         total = count_split(split, dataset_root)
@@ -182,6 +184,8 @@ def _collect_features(
                 ch0_caller=sample.ch0_caller,
                 ch1_agent=sample.ch1_agent,
                 sample_rate=sample.sample_rate,
+                heavy=heavy,
+                vad_backend=vad_backend,
             )
         )
         progress.update(f"{sample.anon_id} ({sample.label})")

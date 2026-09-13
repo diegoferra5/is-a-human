@@ -84,6 +84,11 @@ def tandem_model_path(tmp_path):
             caller_rms_mean=rms,
             caller_zcr_std=zcr,
             caller_rms_cv=zcr,
+            caller_crest_factor_cv=zcr,
+            caller_spectral_flatness_std=zcr,
+            caller_spectral_centroid_std=zcr * 100,
+            caller_response_latency_pos_median_s=0.2 if label == "human" else 0.9,
+            agent_aligned_recovery_cv=0.9 if label == "human" else 0.4,
         )
         return CallFeatures(anon_id=f"{label}_{talk}_{rms}", label=label, split="train", **base)
 
